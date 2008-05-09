@@ -17,13 +17,17 @@ OBJS=\
 	source/Cat_GetButtonSwapInfo.o \
 	source/Cat_PspCallback.o \
 	source/Cat_Network.o \
-	source/Cat_Resolver.o
+	source/Cat_Resolver.o \
+	source/Cat_CharacterEntityReferenceConvert.o \
+	source/Cat_URLConvert.o
 
 INSTALL_FILE=\
 	include/Cat_GetButtonSwapInfo.h \
 	include/Cat_PspCallback.h \
 	include/Cat_Network.h \
-	include/Cat_Resolver.h
+	include/Cat_Resolver.h \
+	include/Cat_CharacterEntityReferenceConvert.h \
+	include/Cat_URLConvert.h
 
 CFLAGS = -O6 -G0 -Wall
 INCDIR = ./include
@@ -46,5 +50,7 @@ uninstall:
 	@rm -f $(PSPDIR)/include/Cat_PspCallback.h
 	@rm -f $(PSPDIR)/include/Cat_Network.h
 	@rm -f $(PSPDIR)/include/Cat_Resolver.h
+	@rm -f $(PSPDIR)/include/Cat_CharacterEntityReferenceConvert.h
+	@rm -f $(PSPDIR)/include/Cat_URLConvert.h
 	@rm -f $(PSPDIR)/lib/$(TARGET_LIB)
 	@echo "Done"
