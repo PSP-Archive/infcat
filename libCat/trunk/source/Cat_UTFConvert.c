@@ -38,8 +38,8 @@ Cat_UTF16toUTF32( const unsigned short* pUTF16, unsigned int* pUTF32 )
 					nCode = (((unsigned int)pUTF16[0] & 0x03FF) << 10)
 								| ((unsigned int)pUTF16[1] & 0x03FF);
 					*pUTF32++ = nCode + 0x10000;
-					pUTF16++;
 				}
+				pUTF16++;
 			}
 		} else {
 			if(pUTF32) {
