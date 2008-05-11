@@ -30,18 +30,23 @@ Cat_UTF16toUTF32( const unsigned short* pUTF16, unsigned int* pUTF32 )
 
 	while(*pUTF16) {
 		if((*pUTF16 & 0xFC00) == 0xD800) {
-			/* 2文字 */
-			if(pUTF32) {
-				*pUTF32++ = (((unsigned int)pUTF16[0] & 0x03FF) << 10)
-					| ((unsigned int)pUTF16[1] & 0x03FF);
+			if((pUTF16[1] & 0xFC00) == 0xDC00) {
+				if(pUTF32) {
+					// サロゲートペアの処理
+					// U+10000 ～ U+10FFFF
+					unsigned int nCode;
+					nCode = (((unsigned int)pUTF16[0] & 0x03FF) << 10)
+								| ((unsigned int)pUTF16[1] & 0x03FF);
+					*pUTF32++ = nCode + 0x10000;
+					pUTF16++;
+				}
 			}
-			pUTF16 += 2;
 		} else {
 			if(pUTF32) {
 				*pUTF32++ = *pUTF16;
 			}
-			pUTF16++;
 		}
+		pUTF16++;
 		nLength += 4;
 	}
 
@@ -78,11 +83,15 @@ Cat_UTF32toUTF16( const unsigned int* pUTF32, unsigned short* pUTF16 )
 			if(pUTF16) {
 				*pUTF16++ = (unsigned short)*pSrc;
 			}
-		} else {
+		} else if(*pSrc <= 0x0010FFFF) {
+			// 16bitでは、U+10000 ～ U+10FFFFを表現できないので、
+			// サロゲートペアを使って表現する。
 			nLength += 4;
 			if(pUTF16) {
-				*pUTF16++ = ((*pSrc >> 10) & 0x3FF) | 0xD800;
-				*pUTF16++ = ( *pSrc        & 0x3FF) | 0xDC00;
+				// U+10000 ～ U+10FFFF
+				unsigned int nCode = *pSrc - 0x10000;
+				*pUTF16++ = ((nCode >> 10) & 0x3FF) | 0xD800;
+				*pUTF16++ = ( nCode        & 0x3FF) | 0xDC00;
 			}
 		}
 		pSrc++;
