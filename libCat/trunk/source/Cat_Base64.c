@@ -5,6 +5,7 @@
 
 #include <inttypes.h>
 #include <netinet/in.h>
+#include "Cat_Base64.h"
 
 //! BASE64のエンコードテーブル
 static const uint8_t tblBase64Encode[0x40] = {

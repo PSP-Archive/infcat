@@ -4,7 +4,8 @@
 #ifndef INCL_Cat_Base64_h
 #define INCL_Cat_Base64_h
 
-#include "Cat.h"
+#include <inttypes.h>
+#include <stdlib.h>
 
 #ifdef __cplusplus
 extern "C" {
