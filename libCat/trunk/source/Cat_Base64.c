@@ -173,14 +173,14 @@ Cat_Base64Decode( const char* pszBase64, void* pvData, size_t nDataSize )
 	}
 
 	if(pvData) {
+		uint32_t nCode;
 		uint8_t* pbBuffer;
 		if(nSrcLength > nDataSize) {
 			return 0;	// バッファが足りない
 		}
 		nDataSize = nSrcLength;
 		pbBuffer = (uint8_t*)pvData;
-		while(nDataSize > 3) {
-			uint32_t nCode;
+		while(nDataSize >= 3) {
 			// .... .... 0000 0000 0000 0000 0000 0000 ; 下位24bit
 			//           aaaa aa                       ; 1文字目
 			//                  bb bbbb                ; 2文字目
@@ -197,7 +197,6 @@ Cat_Base64Decode( const char* pszBase64, void* pvData, size_t nDataSize )
 		}
 		// 端数の処理
 		if(nDataSize == 1) {
-			uint32_t nCode;
 			// .... .... 0000 0000 0000 0000 0000 0000 ; 下位24bit
 			//           aaaa aa                       ; 1文字目
 			//                  bb bbbb                ; 2文字目
@@ -205,7 +204,6 @@ Cat_Base64Decode( const char* pszBase64, void* pvData, size_t nDataSize )
 			nCode |= (uint32_t)tblBase64Decode[*(uint8_t*)pszBase64++] << 12;
 			*pbBuffer = (uint8_t)( nCode >> 16);
 		} else if(nDataSize == 2) {
-			uint32_t nCode;
 			// .... .... 0000 0000 0000 0000 0000 0000 ; 下位24bit
 			//           aaaa aa                       ; 1文字目
 			//                  bb bbbb                ; 2文字目
