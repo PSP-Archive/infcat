@@ -102,13 +102,14 @@ Cat_UTF32toUTF16( const uint32_t* pUTF32, uint16_t* pUTF16, size_t nBufferLength
 				*pUTF16++ = (uint16_t)*pUTF32;
 				nLength += sizeof(uint16_t);
 			} else if(*pUTF32 <= 0x0010FFFF) {
+				uint32_t nCode;
 				if((nLength + sizeof(uint16_t)) >= nBufferLength) {
 					break;	// バッファ足りない
 				}
 				// 16bitでは、U+10000 ～ U+10FFFFを表現できないので、
 				// サロゲートペアを使って表現する。
 				// U+10000 ～ U+10FFFF
-				uint32_t nCode = *pUTF32 - 0x10000;
+				nCode = *pUTF32 - 0x10000;
 				*pUTF16++ = ((nCode >> 10) & 0x3FF) | 0xD800;
 				*pUTF16++ = ( nCode        & 0x3FF) | 0xDC00;
 				nLength += sizeof(uint16_t) * 2;
