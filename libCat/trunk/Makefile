@@ -25,7 +25,8 @@ OBJS=\
 	source/Cat_GB2312Convert.o \
 	source/Cat_Big5Convert.o \
 	source/Cat_EUCJPConvert.o \
-	source/Cat_Base64.o
+	source/Cat_Base64.o \
+	source/Cat_MD5.o
 
 INSTALL_FILE=\
 	include/Cat_GetButtonSwapInfo.h \
@@ -39,7 +40,8 @@ INSTALL_FILE=\
 	include/Cat_GB2312Convert.h \
 	include/Cat_Big5Convert.h \
 	include/Cat_EUCJPConvert.h \
-	include/Cat_Base64.h
+	include/Cat_Base64.h \
+	include/Cat_MD5.h
 
 CFLAGS = -O6 -G0 -Wall
 INCDIR = ./include
@@ -70,5 +72,6 @@ uninstall:
 	@rm -f $(PSPDIR)/include/Cat_Big5Convert.h
 	@rm -f $(PSPDIR)/include/Cat_EUCJPConvert.h
 	@rm -f $(PSPDIR)/include/Cat_Base64.h
+	@rm -f $(PSPDIR)/include/Cat_MD5.h
 	@rm -f $(PSPDIR)/lib/$(TARGET_LIB)
 	@echo "Done"
