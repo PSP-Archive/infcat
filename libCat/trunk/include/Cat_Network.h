@@ -112,6 +112,15 @@ extern void Cat_NetworkTerm( void );
 */
 extern int Cat_NetworkConnect( void (*draw_callback)(void*), void (*screen_update_callback)(void*), void* pvUserData );
 
+//! ネットワーク状態表示
+/*!
+	@param[in]	draw_callback			描画用コールバック関数
+	@param[in]	screen_update_callback	更新用コールバック関数
+	@param[in]	pvUserData				コールバック関数に渡されるユーザデータ
+	@see	Cat_NetworkConnect()
+*/
+extern int Cat_NetworkDisplayStatus( void (*draw_callback)(void*), void (*screen_update_callback)(void*), void* pvUserData );
+
 //! ネットワーク接続状態を取得
 /*!
 	@return	接続している状態なら1。そうでないなら0を返す。

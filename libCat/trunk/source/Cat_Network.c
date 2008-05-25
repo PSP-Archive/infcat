@@ -328,6 +328,99 @@ Cat_NetworkConnect( void (*draw_callback)(void*), void (*screen_update_callback)
 	return rc;
 }
 
+//! ネットワーク状態表示
+/*!
+	@param[in]	draw_callback			描画用コールバック関数
+	@param[in]	screen_update_callback	更新用コールバック関数
+	@param[in]	pvUserData				コールバック関数に渡されるユーザデータ
+	@see	Cat_NetworkConnect()
+*/
+int
+Cat_NetworkDisplayStatus( void (*draw_callback)(void*), void (*screen_update_callback)(void*), void* pvUserData )
+{
+	static char pBuffer[sizeof(pspUtilityNetconfData) + 64];
+	pspUtilityNetconfData* pConf;
+	int nState;
+	int rc;
+	int fFinish;
+
+	pConf = (pspUtilityNetconfData*)pBuffer;
+	memset( pConf, 0, sizeof(pspUtilityNetconfData) + 64 );
+	pConf->base.size = sizeof(pspUtilityNetconfData) + 64;
+
+	sceUtilityGetSystemParamInt( PSP_SYSTEMPARAM_ID_INT_LANGUAGE, &pConf->base.language ); // Prompt language
+	pConf->base.buttonSwap     = Cat_GetButtonSwap(); /* X/O button swap */
+	pConf->action              = PSP_NETCONF_ACTION_DISPLAYSTATUS;
+	pConf->base.graphicsThread = 0x11;
+	pConf->base.accessThread   = 0x13;
+	pConf->base.fontThread     = 0x12;
+	pConf->base.soundThread    = 0x10;
+
+	rc = sceUtilityNetconfInitStart( pConf );
+	while((unsigned int)rc == 0x80110004U && pConf->base.size >= 4) {
+		pConf->base.size = pConf->base.size - 4;
+		rc = sceUtilityNetconfInitStart( pConf );
+	}
+	nState = 1;
+	if(rc < 0) {
+		nState = 10;
+	}
+
+	fFinish = 0;
+	while(!fFinish) {
+		switch(nState) {
+			case 1:
+				if(sceUtilityNetconfGetStatus() == PSP_UTILITY_DIALOG_QUIT) {
+					sceUtilityNetconfShutdownStart();
+					nState = 2;
+				}
+				break;
+			case 2:
+				if(sceUtilityNetconfGetStatus() == PSP_UTILITY_DIALOG_NONE) {
+					rc = 0;
+					fFinish = 1;
+				}
+				break;
+
+			case 10:
+				if(ShowMessageDialogError( rc ) < 0) {
+					/* エラーが発生した */
+					fFinish = 1;
+				} else {
+					nState = 11;
+				}
+				break;
+			case 11:
+				if(sceUtilityMsgDialogGetStatus() == PSP_UTILITY_DIALOG_QUIT) {
+					sceUtilityMsgDialogShutdownStart();
+					nState = 12;
+				}
+				break;
+			case 12:
+				if(sceUtilityMsgDialogGetStatus() == PSP_UTILITY_DIALOG_NONE) {
+					fFinish = 1;
+				}
+				break;
+		}
+
+		if(draw_callback) {
+			draw_callback( pvUserData );
+		}
+
+		if(sceUtilityNetconfGetStatus() == PSP_UTILITY_DIALOG_VISIBLE) {
+			sceUtilityNetconfUpdate( 2 );
+		}
+		if(sceUtilityMsgDialogGetStatus() == PSP_UTILITY_DIALOG_VISIBLE) {
+			sceUtilityMsgDialogUpdate( 2 );
+		}
+
+		if(screen_update_callback) {
+			screen_update_callback( pvUserData );
+		}
+	}
+	return rc;
+}
+
 //! ネットワーク接続状態を取得
 /*!
 	@return	接続している状態なら1。そうでないなら0を返す。
