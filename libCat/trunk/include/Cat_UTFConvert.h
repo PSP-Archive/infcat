@@ -101,6 +101,22 @@ extern size_t Cat_UTF8toUTF16( const uint8_t* pUTF8, uint16_t* pUTF16, size_t nB
 */
 extern size_t Cat_UTF16toUTF8( const uint16_t* pUTF16, uint8_t* pUTF8, size_t nBufferLength );
 
+//! UTF-8からUTF-16へ変換する
+/*!
+	@param[in]	pUTF8	変換する文字列(UTF-8)
+	@return	変換された文字列(UTF-16) \n
+			エラーの場合は、0が返る。
+*/
+extern uint16_t* Cat_ConvertUTF8toUTF16( const uint8_t* pUTF8 );
+
+//! UTF-16からUTF-8へ変換する
+/*!
+	@param[in]	pUTF16	変換する文字列(UTF-16)
+	@return	変換された文字列(UTF-8) \n
+			エラーの場合は、0が返る。
+*/
+extern uint8_t* Cat_ConvertUTF16toUTF8( const uint16_t* pUTF16 );
+
 #ifdef __cplusplus
 }
 #endif

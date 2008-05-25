@@ -419,3 +419,51 @@ Cat_UTF16toUTF8( const uint16_t* pUTF16, uint8_t* pUTF8, size_t nBufferLength )
 	FREE( pTmp );
 	return nUTF8Length;
 }
+
+//! UTF-8からUTF-16へ変換する
+/*!
+	@param[in]	pUTF8	変換する文字列(UTF-8)
+	@return	変換された文字列(UTF-16) \n
+			エラーの場合は、0が返る。
+*/
+uint16_t*
+Cat_ConvertUTF8toUTF16( const uint8_t* pUTF8 )
+{
+	uint16_t* rc;
+	size_t nUTF16Length;
+
+	nUTF16Length = Cat_UTF8toUTF16( pUTF8, 0, 0 );
+	if(nUTF16Length <= 0) {
+		return 0;
+	}
+	rc = (uint16_t*)MALLOC( nUTF16Length );
+	if(rc == 0) {
+		return 0;
+	}
+	Cat_UTF8toUTF16( pUTF8, rc, nUTF16Length );
+	return rc;
+}
+
+//! UTF-16からUTF-8へ変換する
+/*!
+	@param[in]	pUTF16	変換する文字列(UTF-16)
+	@return	変換された文字列(UTF-8) \n
+			エラーの場合は、0が返る。
+*/
+uint8_t*
+Cat_ConvertUTF16toUTF8( const uint16_t* pUTF16 )
+{
+	uint8_t* rc;
+	size_t nUTF8Length;
+
+	nUTF8Length = Cat_UTF16toUTF8( pUTF16, 0, 0 );
+	if(nUTF8Length <= 0) {
+		return 0;
+	}
+	rc = (uint8_t*)MALLOC( nUTF8Length );
+	if(rc == 0) {
+		return 0;
+	}
+	Cat_UTF16toUTF8( pUTF16, rc, nUTF8Length );
+	return rc;
+}
