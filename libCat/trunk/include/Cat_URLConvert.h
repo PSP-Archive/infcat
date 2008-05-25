@@ -24,6 +24,16 @@ extern "C" {
 */
 extern int Cat_URLEncode( const char* pszURL, char* pszText );
 
+//! URLデコードする
+/*!
+	\a pszURL に0を渡すと、変換に必要なバッファサイズを計算することができる。
+
+	@param[in]	pszText	デコードする文字列(UTF-8)
+	@param[out]	pszURL	デコードされた文字列(UTF-8) (0を渡すことも可)
+	@return	NULLターミネイトを含んだ変換に必要なバッファのサイズ(バイト単位)
+*/
+extern int Cat_URLDecode( const char* pszText, char* pszURL );
+
 #ifdef __cplusplus
 }
 #endif
