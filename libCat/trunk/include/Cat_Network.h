@@ -117,6 +117,8 @@ extern int Cat_NetworkConnect( void (*draw_callback)(void*), void (*screen_updat
 	@param[in]	draw_callback			描画用コールバック関数
 	@param[in]	screen_update_callback	更新用コールバック関数
 	@param[in]	pvUserData				コールバック関数に渡されるユーザデータ
+	@return	正常終了時、0。\n
+			初期化に失敗した場合は、負数のエラーコードが返る。
 	@see	Cat_NetworkConnect()
 */
 extern int Cat_NetworkDisplayStatus( void (*draw_callback)(void*), void (*screen_update_callback)(void*), void* pvUserData );
@@ -131,4 +133,4 @@ extern int Cat_NetworkIsConnect( void );
 }
 #endif
 
-#endif
+#endif // INCL_Cat_Network_h
