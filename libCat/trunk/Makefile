@@ -26,7 +26,9 @@ OBJS=\
 	source/Cat_Big5Convert.o \
 	source/Cat_EUCJPConvert.o \
 	source/Cat_Base64.o \
-	source/Cat_MD5.o
+	source/Cat_MD5.o \
+	source/Cat_Palette.o \
+	source/Cat_Texture.o
 
 INSTALL_FILE=\
 	include/Cat_GetButtonSwapInfo.h \
@@ -41,7 +43,9 @@ INSTALL_FILE=\
 	include/Cat_Big5Convert.h \
 	include/Cat_EUCJPConvert.h \
 	include/Cat_Base64.h \
-	include/Cat_MD5.h
+	include/Cat_MD5.h \
+	include/Cat_Palette.h \
+	include/Cat_Texture.h
 
 CFLAGS = -O6 -G0 -Wall
 INCDIR = ./include
@@ -73,5 +77,7 @@ uninstall:
 	@rm -f $(PSPDIR)/include/Cat_EUCJPConvert.h
 	@rm -f $(PSPDIR)/include/Cat_Base64.h
 	@rm -f $(PSPDIR)/include/Cat_MD5.h
+	@rm -f $(PSPDIR)/include/Cat_Palette.h
+	@rm -f $(PSPDIR)/include/Cat_Texture.h
 	@rm -f $(PSPDIR)/lib/$(TARGET_LIB)
 	@echo "Done"

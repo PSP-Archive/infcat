@@ -1,0 +1,519 @@
+//! @file	Cat_Texture.c
+// テクスチャ関連
+
+#include <pspgu.h>
+#include <string.h>
+#include <malloc.h>	// for memalign
+#include "Cat_Texture.h"
+
+#ifndef CAT_MALLOC
+//! メモリ確保マクロ
+#define CAT_MALLOC(x) memalign( 32, (x) )
+#endif // CAT_MALLOC
+
+#ifndef CAT_FREE
+//! メモリ解放マクロ
+#define CAT_FREE(x) free( x )
+#endif // CAT_FREE
+
+//! テクスチャのモード入れ替え無し
+#define CAT_TEXMODE_NORMAL (0)
+//! テクスチャのモード入れ替えあり
+#define CAT_TEXMODE_SWAP   (1)
+
+
+//! サイズを調整する
+static void ConvertSize( Cat_Texture* pTexture );
+//! テクスチャ内を入れ替えて、高速で描画できるように変換
+static void ConvertImageSwap( Cat_Texture* pTexture );
+//! 使っている色を調べて16色以下なら4bitにする
+static void Convert4( Cat_Texture* pTexture );
+
+//! 最小の2の乗数に切り上げる
+/*!
+	@param[in]	x	値(0～65536まで)
+	@return	最小の2の乗数
+*/
+inline uint32_t up2( uint32_t x )
+{
+	if(x <= 1) {
+		return 1;
+	} else if(x <= 2) {
+		return 2;
+	} else if(x <= 4) {
+		return 4;
+	} else if(x <= 8) {
+		return 8;
+	} else if(x <= 16) {
+		return 16;
+	} else if(x <= 32) {
+		return 32;
+	} else if(x <= 64) {
+		return 64;
+	} else if(x <= 128) {
+		return 128;
+	} else if(x <= 256) {
+		return 256;
+	} else if(x <= 512) {
+		return 512;
+	} else if(x <= 1024) {
+		return 1024;
+	} else if(x <= 2048) {
+		return 2048;
+	} else if(x <= 4096) {
+		return 4096;
+	} else if(x <= 8192) {
+		return 8192;
+	} else if(x <= 16384) {
+		return 16384;
+	} else if(x <= 32768) {
+		return 32768;
+	} else if(x <= 65536) {
+		return 65536;
+	}
+	return 1024*128;
+}
+
+//! テクスチャ作成
+/*!
+	\a pvImage は、mallocで確保したメモリを渡すこと。 \n
+	Cat_TextureRelease()で解放されるので、解放しないこと。
+
+	@param[in]	nWidth			テクスチャの横幅(ピクセル単位)
+	@param[in]	nHeight			テクスチャの高さ(ピクセル単位)
+	@param[in]	nPitch			テクスチャの横幅のピッチ(バイト単位)
+	@param[in]	pvImage			テクスチャのデータ(mallocで確保したメモリを渡すこと。)
+	@param[in]	ePixelFormat	ピクセルフォーマット
+	@param[in]	pPalette		パレット
+	@return	作成されたテクスチャ。失敗した場合は0が返る。
+	@see	Cat_TextureRelease()
+*/
+Cat_Texture*
+Cat_TextureCreate( uint32_t nWidth, uint32_t nHeight, uint32_t nPitch, void* pvImage, FORMAT_PIXEL ePixelFormat, Cat_Palette* pPalette )
+{
+	Cat_Texture* rc;
+
+	rc = CAT_MALLOC( sizeof(Cat_Texture) );
+	if(rc) {
+		rc->ePixelFormat = ePixelFormat;
+		rc->nWidth       = nWidth;
+		rc->nHeight      = nHeight;
+		rc->nPitch       = nPitch;
+		rc->nWidth2      = up2( nWidth );
+		rc->nHeight2     = up2( nHeight );
+		rc->pPalette     = pPalette;
+		rc->pPalette4    = 0;
+		rc->nTexMode     = CAT_TEXMODE_NORMAL;
+		rc->pvData       = pvImage;
+		if(rc->pPalette) {
+			rc->pPalette->nRef++;
+		}
+
+		// テクスチャサイズが大きかったら小さくする
+		if((rc->nWidth > 512) || (rc->nHeight > 512)) {
+			ConvertSize( rc );
+			if((rc->nWidth > 512) || (rc->nHeight > 512)) {
+				// 駄目だった
+				Cat_TextureRelease( rc );
+				return 0;
+			}
+		}
+
+		// 使っている色を調べて16色以下なら4bitにする
+		Convert4( rc );
+
+		// テクスチャスケーリング
+		rc->fScaleWidth  = (float)rc->nWidth  / (float)rc->nWidth2;
+		rc->fScaleHeight = (float)rc->nHeight / (float)rc->nHeight2;
+		// 横幅
+		switch(rc->ePixelFormat) {
+			case FORMAT_PIXEL_8888:
+				rc->nWidth16 = rc->nPitch / 4;
+				break;
+			case FORMAT_PIXEL_5650:
+			case FORMAT_PIXEL_5551:
+			case FORMAT_PIXEL_4444:
+				rc->nWidth16 = rc->nPitch / 2;
+				break;
+			case FORMAT_PIXEL_CLUT8:
+			default:
+				rc->nWidth16 = rc->nPitch;
+				break;
+			case FORMAT_PIXEL_CLUT4:
+				rc->nWidth16 = rc->nPitch * 2;
+				break;
+		}
+		// イメージスワップ
+		ConvertImageSwap( rc );
+	}
+	return rc;
+}
+
+//! テクスチャ解放
+/*!
+	@param[in]	pTexture	解放するテクスチャ
+	@see	Cat_TextureCreate()
+*/
+void
+Cat_TextureRelease( Cat_Texture* pTexture )
+{
+	if(pTexture == 0) {
+		return;
+	}
+
+	if(pTexture->pPalette) {
+		// パレット解放
+		Cat_PaletteRelease( pTexture->pPalette );
+		pTexture->pPalette = 0;
+	}
+	if(pTexture->pPalette4) {
+		// パレット解放
+		Cat_PaletteRelease( pTexture->pPalette4 );
+		pTexture->pPalette4 = 0;
+	}
+	if(pTexture->pvData) {
+		// イメージ解放
+		CAT_FREE( pTexture->pvData );
+		pTexture->pvData = 0;
+	}
+	CAT_FREE( pTexture );
+}
+
+//! テクスチャ設定
+/*!
+	パレットがある場合は、パレットも設定される。
+	@param[in]	pTexture	設定するテクスチャ
+*/
+void
+Cat_TextureSetTexture( Cat_Texture* pTexture )
+{
+	if(pTexture && pTexture->pvData) {
+		/* テクスチャ有効 */
+		sceGuEnable( GU_TEXTURE_2D );
+
+		/* テクスチャ設定 */
+		sceGuTexMode( (int)pTexture->ePixelFormat, 0, 0, pTexture->nTexMode );
+		sceGuTexImage( 0, pTexture->nWidth2, pTexture->nHeight2, pTexture->nWidth16, pTexture->pvData );
+		sceGuTexFlush();
+
+		/* 2の乗数じゃないとき用の処理 */
+		sceGuTexScale( pTexture->fScaleWidth, pTexture->fScaleHeight );
+		/* sceGuTexOffset( 0.0f, 0.0f ); */
+
+		/* パレット設定 */
+		if(pTexture->pPalette) {
+			if(pTexture->pPalette4) {
+				// 8bitから4ビットへ変換されているテクスチャ
+				// 元のパレットから再構成する
+				int i;
+				if(pTexture->pPalette->ePaletteFormat == FORMAT_PALETTE_8888) {
+					for(i = 0; i < 16; i++) {
+						((uint32_t*)pTexture->pPalette4->pvData)[i] = ((uint32_t*)pTexture->pPalette->pvData)[pTexture->tbl4to8[i]];
+					}
+				} else {
+					for(i = 0; i < 16; i++) {
+						((uint16_t*)pTexture->pPalette4->pvData)[i] = ((uint16_t*)pTexture->pPalette->pvData)[pTexture->tbl4to8[i]];
+					}
+				}
+				Cat_PaletteSetPalette( pTexture->pPalette4 );
+			} else {
+				Cat_PaletteSetPalette( pTexture->pPalette );
+			}
+		}
+	} else {
+		sceGuDisable( GU_TEXTURE_2D );	/* テクスチャ無効 */
+	}
+}
+
+//! 横幅を取得
+/*!
+	@param[in]	pTexture	テクスチャ
+	@return	テクスチャの横幅(ピクセル単位)
+*/
+uint32_t
+Cat_TextureGetWidth( Cat_Texture* pTexture )
+{
+	return pTexture->nWidth;
+}
+
+//! 縦幅を取得
+/*!
+	@param[in]	pTexture	テクスチャ
+	@return	テクスチャの高さ(ピクセル単位)
+*/
+uint32_t
+Cat_TextureGetHeight( Cat_Texture* pTexture )
+{
+	return pTexture->nHeight;
+}
+
+//! ピッチを取得
+/*!
+	@param[in]	pTexture	テクスチャ
+	@return	ピッチ(バイト単位)
+*/
+uint32_t
+Cat_TextureGetPitch( Cat_Texture* pTexture )
+{
+	return pTexture->nPitch;
+}
+
+//! サイズを調整する
+static void
+ConvertSize( Cat_Texture* pTexture )
+{
+	uint32_t dx;
+	uint32_t dy;
+	uint32_t nWidth2;
+	uint32_t nHeight2;
+	uint8_t* work;
+	uint32_t h;
+	uint32_t w;
+	uint32_t pitch;
+	uint32_t ppb;
+
+	if(pTexture == 0) {
+		return;
+	}
+
+	nWidth2  = up2( pTexture->nWidth );
+	nHeight2 = up2( pTexture->nHeight );
+	if(nWidth2 <= 512) {
+		dx = 1;
+	} else if(nWidth2 <= 512*2) {
+		dx = 2;
+	} else if(nWidth2 <= 512*4) {
+		dx = 4;
+	} else if(nWidth2 <= 512*8) {
+		dx = 8;
+	} else if(nWidth2 <= 512*16) {
+		dx = 16;
+	} else if(nWidth2 <= 512*32) {
+		dx = 32;
+	} else if(nWidth2 <= 512*64) {
+		dx = 64;
+	} else if(nWidth2 <= 512*128) {
+		dx = 128;
+	} else if(nWidth2 <= 512*256) {
+		dx = 256;
+	} else if(nWidth2 <= 512*512) {
+		dx = 512;
+	} else {
+		return;	/* さすがに無理 */
+	}
+
+	if(nHeight2 <= 512) {
+		dy = 1;
+	} else if(nHeight2 <= 512*2) {
+		dy = 2;
+	} else if(nHeight2 <= 512*4) {
+		dy = 4;
+	} else if(nHeight2 <= 512*8) {
+		dy = 8;
+	} else if(nHeight2 <= 512*16) {
+		dy = 16;
+	} else if(nHeight2 <= 512*32) {
+		dy = 32;
+	} else if(nHeight2 <= 512*64) {
+		dy = 64;
+	} else if(nHeight2 <= 512*128) {
+		dy = 128;
+	} else if(nHeight2 <= 512*256) {
+		dy = 256;
+	} else if(nHeight2 <= 512*512) {
+		dy = 512;
+	} else {
+		return;	/* さすがに無理 */
+	}
+
+	/* 縮小した情報へ */
+	h = (((pTexture->nHeight / dy) + 7) & ~7);		/* 8の倍数に */
+	w = pTexture->nWidth / dx;						/* 横幅 */
+	pitch = 1;
+	ppb = 0;
+	/* 16バイト単位に */
+	switch(pTexture->ePixelFormat) {
+		case FORMAT_PIXEL_CLUT4:
+			w = ((w * 4 + 127) & ~127) / 4;
+			pitch = w / 2;
+			break;
+		case FORMAT_PIXEL_CLUT8:
+		default:
+			w = ((w + 15) & ~15);
+			pitch = w;
+			ppb = 1;
+			break;
+		case FORMAT_PIXEL_5650:
+		case FORMAT_PIXEL_5551:
+		case FORMAT_PIXEL_4444:
+			w = ((w * 2 + 15) & ~15) / 2;
+			pitch = w * 2;
+			ppb = 2;
+			break;
+		case FORMAT_PIXEL_8888:
+			w = ((w * 4 + 15) & ~15) / 4;
+			pitch = w * 4;
+			ppb = 4;
+			break;
+	}
+	/* テクスチャ縮小 */
+	work = (uint8_t*)CAT_MALLOC( pitch * h );
+	if(work) {
+		uint32_t x;
+		uint32_t y;
+		uint32_t yy;
+		uint32_t xx;
+		memset( work, 0, pitch * h );
+		if(pTexture->ePixelFormat == FORMAT_PIXEL_CLUT4) {
+			yy = 0;
+			for(y = 0; y < pTexture->nHeight;) {
+				xx = 0;
+				for(x = 0; x < pTexture->nWidth; x += dx) {
+					uint8_t c = *((uint8_t*)pTexture->pvData + x / 2 + y * pTexture->nPitch);
+					if(x & 1) {
+						c &= 0xf;
+					} else {
+						c >>= 4;
+					}
+					if(xx & 1) {
+						/* 奇数 */
+						work[xx / 2 + yy * pitch] = (work[xx / 2 + yy * pitch] & 0xf0) | c;
+					} else {
+						work[xx / 2 + yy * pitch] = (work[xx / 2 + yy * pitch] & 0xf) | (c << 4);
+					}
+					xx++;
+				}
+				yy++;
+				y += dy;
+			}
+		} else {
+			yy = 0;
+			for(y = 0; y < pTexture->nHeight;) {
+				xx = 0;
+				for(x = 0; x < pTexture->nWidth; x += dx) {
+					memcpy( &work[xx * ppb + yy * pitch], ((uint8_t*)pTexture->pvData + x * ppb + y * pTexture->nPitch), ppb );
+					xx++;
+				}
+				yy++;
+				y += dy;
+			}
+		}
+		CAT_FREE( pTexture->pvData );
+		pTexture->pvData   = (void*)work;
+		pTexture->nPitch   = pitch;
+		pTexture->nWidth   = w;
+		pTexture->nHeight  = h;
+		pTexture->nWidth2  = up2( pTexture->nWidth );
+		pTexture->nHeight2 = up2( pTexture->nHeight );
+	}
+}
+
+//! テクスチャ内を入れ替えて、高速で描画できるように変換
+static void
+ConvertImageSwap( Cat_Texture* pTexture )
+{
+	if(pTexture->pvData && (pTexture->nTexMode == CAT_TEXMODE_NORMAL)) {
+		uint8_t* work = (uint8_t*)CAT_MALLOC( pTexture->nPitch * 8 );
+		if(work) {
+			uint32_t h = ((pTexture->nHeight + 7) & ~7);	/* 高さ8dot単位に */
+			uint8_t* pSrc = (uint8_t*)pTexture->pvData;
+			uint32_t y;
+			uint32_t x;
+			uint32_t yy;
+			uint32_t xx;
+			for(y = 0; y < h; y += 8) {
+				memcpy( work, pSrc, pTexture->nPitch * 8 );
+				for(x = 0; x < pTexture->nPitch; x += 16) {
+					for(yy = 0; yy < 8; yy++) {
+						for(xx = x; xx < x + 16; xx++) {
+							*pSrc++ = work[xx + yy * pTexture->nPitch];
+						}
+					}
+				}
+			}
+			CAT_FREE( work );
+			pTexture->nTexMode = CAT_TEXMODE_SWAP;
+		}
+	}
+}
+
+//! 使っている色を調べて16色以下なら4bitにする
+static void
+Convert4( Cat_Texture* pTexture )
+{
+	uint8_t his[256];
+	uint32_t x;
+	uint32_t y;
+	uint32_t count;
+	uint8_t* work;
+
+	if((pTexture == 0) || (pTexture->pvData == 0)) {
+		return;
+	}
+
+	if(pTexture->ePixelFormat != FORMAT_PIXEL_CLUT8) {
+		return;
+	}
+
+	memset( his, 32, 256 );
+
+	count = 0;
+	for(y = 0; y < pTexture->nHeight; y++) {
+		for(x = 0; x < pTexture->nWidth; x++) {
+			unsigned char c = *((uint8_t*)pTexture->pvData + x + y * pTexture->nPitch);
+			if(his[c] == 32) {
+				his[c] = count;
+				count++;
+				if(count > 16) {
+					/* 色つかいすぎなので駄目です。 */
+					return;
+				}
+			}
+		}
+	}
+
+	if(pTexture->pPalette4) {
+		Cat_PaletteRelease( pTexture->pPalette4 );
+	}
+	pTexture->pPalette4 = Cat_PaletteCreate( pTexture->pPalette->ePaletteFormat, 16, 0 );
+	if(pTexture->pPalette4 == 0) {
+		return;	/* パレット作成に失敗した */
+	}
+
+	/* パレット変換テーブル作成 */
+	count = 0;
+	for(x = 0; x < 256; x++) {
+		if(his[x] < 16) {
+			his[x] = count;
+			pTexture->tbl4to8[count] = x;	/* 変換テーブル */
+			count++;
+		}
+	}
+
+	/* 16色に変換する */
+	int h = ((pTexture->nHeight + 7) & ~7);						/* 8の倍数に */
+	int pitch = ((pTexture->nWidth * 4 + 127) & ~127) / 8;		/* 16バイト単位に */
+	work = (uint8_t*)CAT_MALLOC( pitch * h );
+	if(work) {
+		memset( work, 0, pitch * h );
+		for(y = 0; y < pTexture->nHeight; y++) {
+			for(x = 0; x < pTexture->nWidth; x++) {
+				uint8_t c = *((uint8_t*)pTexture->pvData + x + y * pTexture->nPitch);
+				if((x & 1) == 0) {
+					work[(x / 2) + y * pitch] = his[c];
+				} else {
+					work[(x / 2) + y * pitch] |= his[c] << 4;
+				}
+			}
+		}
+		CAT_FREE( pTexture->pvData );
+		pTexture->pvData       = (void*)work;
+		pTexture->nPitch       = pitch;
+		pTexture->ePixelFormat = FORMAT_PIXEL_CLUT4;
+	} else {
+		if(pTexture->pPalette4) {
+			Cat_PaletteRelease( pTexture->pPalette4 );
+			pTexture->pPalette4 = 0;
+		}
+	}
+}
