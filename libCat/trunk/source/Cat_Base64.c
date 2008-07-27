@@ -1,9 +1,7 @@
 //! @file	Cat_Base64.c
 // BASE64変換
 
-//! @todo	コーディングのみ。テストすること。
-
-#include <inttypes.h>
+#include <stdint.h>
 #include <netinet/in.h>
 #include "Cat_Base64.h"
 
@@ -126,8 +124,9 @@ CalcDecodeSize( const char* pszBase64 )
 	// 文字列長を調べる
 	// 文字列に不正な文字が入ってないかも調べる
 	size_t nLength = 0;
+	size_t rc;
 	while(pszBase64[nLength]) {
-		if(tblBase64Decode[nLength] >= 0x40) {
+		if(tblBase64Decode[(uint8_t)pszBase64[nLength]] >= 0x40) {
 			return 0;	// 不正な文字が含まれていた
 		}
 		nLength++;
@@ -136,17 +135,18 @@ CalcDecodeSize( const char* pszBase64 )
 		return 0;	// 4の倍数でないなら、不正なデータとみなす
 	}
 
-	nLength = (nLength / 4) * 3;
+	rc = (nLength / 4) * 3;
 
 	// 端数の処理
 	if(pszBase64[nLength - 1] == '=') {
 		if(pszBase64[nLength - 2] == '=') {
-			nLength -= 2;
+			rc -= 2;
 		} else {
-			nLength -= 1;
+			rc -= 1;
 		}
 	}
-	return nLength;
+
+	return rc;
 }
 
 //! BASE64からデータへ変換する
