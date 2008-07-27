@@ -4,7 +4,7 @@
 #ifndef INCL_Cat_Base64_h
 #define INCL_Cat_Base64_h
 
-#include <inttypes.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #ifdef __cplusplus

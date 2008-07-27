@@ -4,8 +4,8 @@
 #ifndef INCL_Cat_EUCJPConvert_h
 #define INCL_Cat_EUCJPConvert_h
 
+#include <stdint.h>
 #include <stdlib.h>
-#include <inttypes.h>
 
 #ifdef __cplusplus
 extern "C" {

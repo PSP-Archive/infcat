@@ -30,8 +30,8 @@
 #ifndef INCL_Cat_MD5_h
 #define INCL_Cat_MD5_h
 
+#include <stdint.h>
 #include <stdlib.h>
-#include <inttypes.h>
 
 #ifdef __cplusplus
 extern "C" {
