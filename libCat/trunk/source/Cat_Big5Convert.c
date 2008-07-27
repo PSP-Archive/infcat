@@ -5,11 +5,17 @@
 #include "Cat_UTFConvert.h"
 #include "codetable/Cat_TABLE_BIG5toUTF16.h"
 #include "codetable/Cat_TABLE_UTF16toBIG5.h"
+#include <malloc.h>	// for memalign
 
+#ifndef CAT_MALLOC
 //! メモリ確保マクロ
-#define MALLOC(x) malloc(x)
+#define CAT_MALLOC(x) memalign( 32, (x) )
+#endif // CAT_MALLOC
+
+#ifndef CAT_FREE
 //! メモリ解放マクロ
-#define FREE(x) free(x)
+#define CAT_FREE(x) free( x )
+#endif // CAT_FREE
 
 //! UTF16からBIG5への変換時、変換できなかった文字に使う文字コード(BIG5) \n □ White Square
 #define BIG5_UNKNOWN_CODE	(0xa1bc)
@@ -202,13 +208,13 @@ Cat_Big5toUTF8( const char* pBig5, uint8_t* pUTF8, size_t nBufferLength )
 	if(nUTF16Length == 0) {
 		return 0;
 	}
-	pTmp = (uint16_t*)MALLOC( nUTF16Length );
+	pTmp = (uint16_t*)CAT_MALLOC( nUTF16Length );
 	if(pTmp == 0) {
 		return 0;
 	}
 	Cat_Big5toUTF16( pBig5, pTmp, nUTF16Length );
 	nUTF8Length = Cat_UTF16toUTF8( pTmp, pUTF8, nBufferLength );
-	FREE( pTmp );
+	CAT_FREE( pTmp );
 	return nUTF8Length;
 }
 
@@ -239,13 +245,13 @@ Cat_Big5toUTF32( const char* pBig5, uint32_t* pUTF32, size_t nBufferLength )
 	if(nUTF16Length == 0) {
 		return 0;
 	}
-	pTmp = (uint16_t*)MALLOC( nUTF16Length );
+	pTmp = (uint16_t*)CAT_MALLOC( nUTF16Length );
 	if(pTmp == 0) {
 		return 0;
 	}
 	Cat_Big5toUTF16( pBig5, pTmp, nUTF16Length );
 	nUTF32Length = Cat_UTF16toUTF32( pTmp, pUTF32, nBufferLength );
-	FREE( pTmp );
+	CAT_FREE( pTmp );
 	return nUTF32Length;
 }
 
@@ -276,13 +282,13 @@ Cat_UTF8toBig5( const uint8_t* pUTF8, char* pBig5, size_t nBufferLength )
 	if(nUTF16Length == 0) {
 		return 0;
 	}
-	pTmp = (unsigned short*)MALLOC( nUTF16Length );
+	pTmp = (unsigned short*)CAT_MALLOC( nUTF16Length );
 	if(pTmp == 0) {
 		return 0;
 	}
 	Cat_UTF8toUTF16( pUTF8, pTmp, nUTF16Length );
 	nBig5Length = Cat_UTF16toBig5( pTmp, pBig5, nBufferLength );
-	FREE( pTmp );
+	CAT_FREE( pTmp );
 	return nBig5Length;
 }
 
@@ -314,12 +320,12 @@ Cat_UTF32toBig5( const uint32_t* pUTF32, char* pBig5, size_t nBufferLength )
 	if(nUTF16Length == 0) {
 		return 0;
 	}
-	pTmp = (unsigned short*)MALLOC( nUTF16Length );
+	pTmp = (unsigned short*)CAT_MALLOC( nUTF16Length );
 	if(pTmp == 0) {
 		return 0;
 	}
 	Cat_UTF32toUTF16( pUTF32, pTmp, nUTF16Length );
 	nBig5Length = Cat_UTF16toBig5( pTmp, pBig5, nBufferLength );
-	FREE( pTmp );
+	CAT_FREE( pTmp );
 	return nBig5Length;
 }

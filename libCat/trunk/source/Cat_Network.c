@@ -55,6 +55,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <malloc.h>	// for memalign
 #include "Cat_Network.h"
 #include "Cat_Resolver.h"
 #include "Cat_GetButtonSwapInfo.h"
@@ -62,10 +63,16 @@
 //! 接続終了後に自動的にリゾルバエンジンを初期化するかどうか
 #define AUTO_INIT_RESOLVER_ENGINE 1
 
+#ifndef CAT_MALLOC
 //! メモリ確保マクロ
-#define MALLOC(x) malloc(x)
+#define CAT_MALLOC(x) memalign( 32, (x) )
+#endif // CAT_MALLOC
+
+#ifndef CAT_FREE
 //! メモリ解放マクロ
-#define FREE(x) free(x)
+#define CAT_FREE(x) free( x )
+#endif // CAT_FREE
+
 //! 文字列複製マクロ
 #define STRDUP(x) strdup(x)
 

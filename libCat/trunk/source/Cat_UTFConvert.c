@@ -2,11 +2,17 @@
 // UTF-8,UTF-16,UTF-32の変換をする
 
 #include "Cat_UTFConvert.h"
+#include <malloc.h>	// for memalign
 
+#ifndef CAT_MALLOC
 //! メモリ確保マクロ
-#define MALLOC(x) malloc(x)
+#define CAT_MALLOC(x) memalign( 32, (x) )
+#endif // CAT_MALLOC
+
+#ifndef CAT_FREE
 //! メモリ解放マクロ
-#define FREE(x) free(x)
+#define CAT_FREE(x) free( x )
+#endif // CAT_FREE
 
 //! UTF-16からUTF-32へ変換する
 /*!
@@ -373,13 +379,13 @@ Cat_UTF8toUTF16( const uint8_t* pUTF8, uint16_t* pUTF16, size_t nBufferLength )
 	if(nUTF32Length == 0) {
 		return 0;
 	}
-	pTmp = (uint32_t*)MALLOC( nUTF32Length );
+	pTmp = (uint32_t*)CAT_MALLOC( nUTF32Length );
 	if(pTmp == 0) {
 		return 0;
 	}
 	Cat_UTF8toUTF32( pUTF8, pTmp, nUTF32Length );
 	nUTF16Length = Cat_UTF32toUTF16( pTmp, pUTF16, nBufferLength );
-	FREE( pTmp );
+	CAT_FREE( pTmp );
 	return nUTF16Length;
 }
 
@@ -410,13 +416,13 @@ Cat_UTF16toUTF8( const uint16_t* pUTF16, uint8_t* pUTF8, size_t nBufferLength )
 	if(nUTF32Length == 0) {
 		return 0;
 	}
-	pTmp = (uint32_t*)MALLOC( nUTF32Length );
+	pTmp = (uint32_t*)CAT_MALLOC( nUTF32Length );
 	if(pTmp == 0) {
 		return 0;
 	}
 	Cat_UTF16toUTF32( pUTF16, pTmp, nUTF32Length );
 	nUTF8Length = Cat_UTF32toUTF8( pTmp, pUTF8, nBufferLength );
-	FREE( pTmp );
+	CAT_FREE( pTmp );
 	return nUTF8Length;
 }
 
@@ -436,7 +442,7 @@ Cat_ConvertUTF8toUTF16( const uint8_t* pUTF8 )
 	if(nUTF16Length <= 0) {
 		return 0;
 	}
-	rc = (uint16_t*)MALLOC( nUTF16Length );
+	rc = (uint16_t*)CAT_MALLOC( nUTF16Length );
 	if(rc == 0) {
 		return 0;
 	}
@@ -460,7 +466,7 @@ Cat_ConvertUTF16toUTF8( const uint16_t* pUTF16 )
 	if(nUTF8Length <= 0) {
 		return 0;
 	}
-	rc = (uint8_t*)MALLOC( nUTF8Length );
+	rc = (uint8_t*)CAT_MALLOC( nUTF8Length );
 	if(rc == 0) {
 		return 0;
 	}

@@ -21,6 +21,7 @@
 #include <arpa/inet.h>	/* for inet_aton */
 #include <string.h>
 #include <stdlib.h>
+#include <malloc.h>	// for memalign
 #include "Cat_Resolver.h"
 
 //! リゾルバエンジンのワークバッファサイズ
@@ -29,10 +30,15 @@
 //! URLキャッシュ数
 #define MAX_URL_CACHE (256)
 
+#ifndef CAT_MALLOC
 //! メモリ確保マクロ
-#define RESOLVER_MALLOC(x) malloc(x)
+#define CAT_MALLOC(x) memalign( 32, (x) )
+#endif // CAT_MALLOC
+
+#ifndef CAT_FREE
 //! メモリ解放マクロ
-#define RESOLVER_FREE(x) free(x)
+#define CAT_FREE(x) free( x )
+#endif // CAT_FREE
 
 #ifdef DEBUG_TRACE
 #define TRACE(x) pspDebugScreenPrintf x
@@ -100,7 +106,7 @@ Cat_ResolverTermEngine( void )
 		/* キャッシュを解放 */
 		for(i = 0; i < MAX_URL_CACHE; i++) {
 			if(AddressSet[i].pszURL) {
-				RESOLVER_FREE( AddressSet[i].pszURL );
+				CAT_FREE( AddressSet[i].pszURL );
 			}
 		}
 		memset( AddressSet, 0, sizeof(AddressSet) );
@@ -168,9 +174,9 @@ Cat_ResolverURL( const char* pszURL, struct in_addr* pDest )
 		m_nRIndex = (m_nRIndex + 1) % MAX_URL_CACHE;
 
 		if(pReprace->pszURL) {
-			RESOLVER_FREE( pReprace->pszURL );
+			CAT_FREE( pReprace->pszURL );
 		}
-		pReprace->pszURL = (char*)RESOLVER_MALLOC( strlen( pszURL ) + 1 );
+		pReprace->pszURL = (char*)CAT_MALLOC( strlen( pszURL ) + 1 );
 		if(pReprace->pszURL) {
 			strcpy( pReprace->pszURL, pszURL );
 		}
@@ -182,7 +188,7 @@ Cat_ResolverURL( const char* pszURL, struct in_addr* pDest )
 			rc = 0;
 		} else {
 			if(pReprace->pszURL) {
-				RESOLVER_FREE( pReprace->pszURL );
+				CAT_FREE( pReprace->pszURL );
 			}
 			pReprace->pszURL = 0;
 			memset( &pReprace->address, 0, sizeof(struct in_addr) );
@@ -223,7 +229,7 @@ resolve_host( struct in_addr* sin_addr, const char* hostname )
 		}
 	}
 
-	buf = (char*)RESOLVER_MALLOC( RESOLVER_WORK_BUFFER_SIZE );
+	buf = (char*)CAT_MALLOC( RESOLVER_WORK_BUFFER_SIZE );
 
 	do {
 		/* Create a resolver */
@@ -246,7 +252,7 @@ resolve_host( struct in_addr* sin_addr, const char* hostname )
 	}
 
 	if(buf) {
-		RESOLVER_FREE( buf );
+		CAT_FREE( buf );
 	}
 
     return rc;

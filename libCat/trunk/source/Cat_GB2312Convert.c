@@ -5,11 +5,17 @@
 #include "Cat_UTFConvert.h"
 #include "codetable/Cat_TABLE_GB2312toUTF16.h"
 #include "codetable/Cat_TABLE_UTF16toGB2312.h"
+#include <malloc.h>	// for memalign
 
+#ifndef CAT_MALLOC
 //! メモリ確保マクロ
-#define MALLOC(x) malloc(x)
+#define CAT_MALLOC(x) memalign( 32, (x) )
+#endif // CAT_MALLOC
+
+#ifndef CAT_FREE
 //! メモリ解放マクロ
-#define FREE(x) free(x)
+#define CAT_FREE(x) free( x )
+#endif // CAT_FREE
 
 //! UTF16からGB2312への変換時、変換できなかった文字に使う文字コード(GB2312) \n □ White Square
 #define GB2312_UNKNOWN_CODE	(0xa1f5)
@@ -201,13 +207,13 @@ Cat_GB2312toUTF8( const char* pGB2312, uint8_t* pUTF8, size_t nBufferLength )
 	if(nUTF16Length == 0) {
 		return 0;
 	}
-	pTmp = (uint16_t*)MALLOC( nUTF16Length );
+	pTmp = (uint16_t*)CAT_MALLOC( nUTF16Length );
 	if(pTmp == 0) {
 		return 0;
 	}
 	Cat_GB2312toUTF16( pGB2312, pTmp, nUTF16Length );
 	nUTF8Length = Cat_UTF16toUTF8( pTmp, pUTF8, nBufferLength );
-	FREE( pTmp );
+	CAT_FREE( pTmp );
 	return nUTF8Length;
 }
 
@@ -238,13 +244,13 @@ Cat_GB2312toUTF32( const char* pGB2312, uint32_t* pUTF32, size_t nBufferLength )
 	if(nUTF16Length == 0) {
 		return 0;
 	}
-	pTmp = (uint16_t*)MALLOC( nUTF16Length );
+	pTmp = (uint16_t*)CAT_MALLOC( nUTF16Length );
 	if(pTmp == 0) {
 		return 0;
 	}
 	Cat_GB2312toUTF16( pGB2312, pTmp, nUTF16Length );
 	nUTF32Length = Cat_UTF16toUTF32( pTmp, pUTF32, nBufferLength );
-	FREE( pTmp );
+	CAT_FREE( pTmp );
 	return nUTF32Length;
 }
 
@@ -275,13 +281,13 @@ Cat_UTF8toGB2312( const uint8_t* pUTF8, char* pGB2312, size_t nBufferLength )
 	if(nUTF16Length == 0) {
 		return 0;
 	}
-	pTmp = (unsigned short*)MALLOC( nUTF16Length );
+	pTmp = (unsigned short*)CAT_MALLOC( nUTF16Length );
 	if(pTmp == 0) {
 		return 0;
 	}
 	Cat_UTF8toUTF16( pUTF8, pTmp, nUTF16Length );
 	nGB2312Length = Cat_UTF16toGB2312( pTmp, pGB2312, nBufferLength );
-	FREE( pTmp );
+	CAT_FREE( pTmp );
 	return nGB2312Length;
 }
 
@@ -313,12 +319,12 @@ Cat_UTF32toGB2312( const uint32_t* pUTF32, char* pGB2312, size_t nBufferLength )
 	if(nUTF16Length == 0) {
 		return 0;
 	}
-	pTmp = (unsigned short*)MALLOC( nUTF16Length );
+	pTmp = (unsigned short*)CAT_MALLOC( nUTF16Length );
 	if(pTmp == 0) {
 		return 0;
 	}
 	Cat_UTF32toUTF16( pUTF32, pTmp, nUTF16Length );
 	nGB2312Length = Cat_UTF16toGB2312( pTmp, pGB2312, nBufferLength );
-	FREE( pTmp );
+	CAT_FREE( pTmp );
 	return nGB2312Length;
 }
