@@ -28,7 +28,9 @@ OBJS=\
 	source/Cat_Base64.o \
 	source/Cat_MD5.o \
 	source/Cat_Palette.o \
-	source/Cat_Texture.o
+	source/Cat_Texture.o \
+	source/Cat_Stream.o \
+	source/Cat_StreamFile.o
 
 INSTALL_FILE=\
 	include/Cat_GetButtonSwapInfo.h \
@@ -45,7 +47,9 @@ INSTALL_FILE=\
 	include/Cat_Base64.h \
 	include/Cat_MD5.h \
 	include/Cat_Palette.h \
-	include/Cat_Texture.h
+	include/Cat_Texture.h \
+	include/Cat_Stream.h \
+	include/Cat_StreamFile.h
 
 CFLAGS = -O6 -G0 -Wall
 INCDIR = ./include
@@ -79,5 +83,7 @@ uninstall:
 	@rm -f $(PSPDIR)/include/Cat_MD5.h
 	@rm -f $(PSPDIR)/include/Cat_Palette.h
 	@rm -f $(PSPDIR)/include/Cat_Texture.h
+	@rm -f $(PSPDIR)/include/Cat_Stream.h
+	@rm -f $(PSPDIR)/include/Cat_StreamFile.h
 	@rm -f $(PSPDIR)/lib/$(TARGET_LIB)
 	@echo "Done"
