@@ -29,7 +29,7 @@ Cat_StreamRead( Cat_Stream* pStream, void* pvData, int64_t nSize )
 int64_t
 Cat_StreamWrite( Cat_Stream* pStream, const void* pvData, int64_t nSize )
 {
-	if(pStream && pStream->Read && pvData && (nSize >= 0)) {
+	if(pStream && pStream->Write && pvData && (nSize >= 0)) {
 		return pStream->Write( pStream, pvData, nSize );
 	}
 	return -1;
