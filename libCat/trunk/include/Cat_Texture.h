@@ -1,8 +1,8 @@
 //! @file	Cat_Texture.h
 // テクスチャ関連
 
-#ifndef INCL_CLASS_Cat_Texture
-#define INCL_CLASS_Cat_Texture
+#ifndef INCL_Cat_Texture_h
+#define INCL_Cat_Texture_h
 
 #include <stdint.h>
 #include "Cat_Palette.h"
@@ -96,4 +96,4 @@ extern uint32_t Cat_TextureGetPitch( Cat_Texture* pTexture );
 }
 #endif
 
-#endif // INCL_CLASS_Cat_Texture
+#endif // INCL_Cat_Texture_h

@@ -1,8 +1,8 @@
 //! @file	Cat_Palette.h
 // パレット関連
 
-#ifndef INCL_CLASS_Cat_Palette
-#define INCL_CLASS_Cat_Palette
+#ifndef INCL_Cat_Palette_h
+#define INCL_Cat_Palette_h
 
 #include <stdint.h>
 
@@ -61,4 +61,4 @@ extern void Cat_PaletteSetPalette( Cat_Palette* pPalette );
 }
 #endif
 
-#endif // INCL_CLASS_Cat_Palette
+#endif // INCL_Cat_Palette_h
