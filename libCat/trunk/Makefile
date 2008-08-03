@@ -10,6 +10,10 @@
 # make uninstall
 #
 
+# define
+#  USE_CAT_IMAGELOADER_PNG
+#  USE_CAT_IMAGELOADER_PCX
+
 TARGET_LIB = libCat.a
 PSP_FW_VERSION = 371
 
@@ -29,6 +33,9 @@ OBJS=\
 	source/Cat_MD5.o \
 	source/Cat_Palette.o \
 	source/Cat_Texture.o \
+	source/Cat_ImageLoader.o \
+	source/Cat_ImageLoaderPNG.o \
+	source/Cat_ImageLoaderPCX.o \
 	source/Cat_Stream.o \
 	source/Cat_StreamFile.o
 
@@ -48,10 +55,11 @@ INSTALL_FILE=\
 	include/Cat_MD5.h \
 	include/Cat_Palette.h \
 	include/Cat_Texture.h \
+	include/Cat_ImageLoader.h \
 	include/Cat_Stream.h \
 	include/Cat_StreamFile.h
 
-CFLAGS = -O6 -G0 -Wall
+CFLAGS = -O6 -G0 -Wall -DUSE_CAT_IMAGELOADER_PNG -DUSE_CAT_IMAGELOADER_PCX
 INCDIR = ./include
 
 PSPSDK=$(shell psp-config --pspsdk-path)
@@ -83,6 +91,7 @@ uninstall:
 	@rm -f $(PSPDIR)/include/Cat_MD5.h
 	@rm -f $(PSPDIR)/include/Cat_Palette.h
 	@rm -f $(PSPDIR)/include/Cat_Texture.h
+	@rm -f $(PSPDIR)/include/Cat_ImageLoader.h
 	@rm -f $(PSPDIR)/include/Cat_Stream.h
 	@rm -f $(PSPDIR)/include/Cat_StreamFile.h
 	@rm -f $(PSPDIR)/lib/$(TARGET_LIB)
