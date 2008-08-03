@@ -36,7 +36,7 @@ Cat_PaletteCreate( FORMAT_PALETTE ePaletteFormat, uint32_t nSize, const void* pv
 	}
 
 	rc = (Cat_Palette*)CAT_MALLOC( sizeof(Cat_Palette) );
-	if(rc == 0) {
+	if(rc) {
 		memset( rc, 0, sizeof(Cat_Palette) );
 		rc->ePaletteFormat = ePaletteFormat;
 		if(ePaletteFormat == FORMAT_PALETTE_8888) {
