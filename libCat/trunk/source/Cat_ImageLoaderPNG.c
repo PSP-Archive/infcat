@@ -19,6 +19,9 @@
 #define CAT_FREE(x) free( x )
 #endif // CAT_FREE
 
+//! PNG形式かどうかを調べるために読み込むサイズ
+#define PNG_BYTES_TO_CHECK (4)
+
 //! フォーマットのチェック
 /*!
 	@param[in]	pStream ストリーム
@@ -29,24 +32,25 @@ int32_t
 Cat_ImageLoaderCheckPNG( Cat_Stream* pStream )
 {
 	int32_t rc = 0;
-	uint8_t sig[8];
+	uint8_t sig[PNG_BYTES_TO_CHECK];
 	int64_t pos;
 
 	pos = Cat_StreamTell( pStream );
 	if(pos >= 0) {
-		if(Cat_StreamRead( pStream, sig, 8 ) == 8) {
-			rc = png_check_sig( sig, 8 ) ? 1 : 0;
+		if(Cat_StreamRead( pStream, sig, PNG_BYTES_TO_CHECK ) == PNG_BYTES_TO_CHECK) {
+			rc = png_check_sig( sig, PNG_BYTES_TO_CHECK ) ? 1 : 0;
 		}
 		Cat_StreamSeek( pStream, pos );
 	}
 	return rc;
 }
 
+//! ストリームから読み込む
 static void
 user_read_data( png_structp png_ptr, png_bytep data, png_size_t length )
 {
 	Cat_Stream* pStream = (Cat_Stream*)png_get_io_ptr( png_ptr );
-	// エラー処理はどうするん？
+	//! @todo エラー処理はどうするん？
 	Cat_StreamRead( pStream, data, length );
 }
 
