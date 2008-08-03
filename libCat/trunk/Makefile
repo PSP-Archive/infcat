@@ -36,6 +36,7 @@ OBJS=\
 	source/Cat_ImageLoader.o \
 	source/Cat_ImageLoaderPNG.o \
 	source/Cat_ImageLoaderPCX.o \
+	source/Cat_Render.o \
 	source/Cat_Stream.o \
 	source/Cat_StreamFile.o
 
@@ -56,6 +57,7 @@ INSTALL_FILE=\
 	include/Cat_Palette.h \
 	include/Cat_Texture.h \
 	include/Cat_ImageLoader.h \
+	include/Cat_Render.h \
 	include/Cat_Stream.h \
 	include/Cat_StreamFile.h
 
@@ -92,6 +94,7 @@ uninstall:
 	@rm -f $(PSPDIR)/include/Cat_Palette.h
 	@rm -f $(PSPDIR)/include/Cat_Texture.h
 	@rm -f $(PSPDIR)/include/Cat_ImageLoader.h
+	@rm -f $(PSPDIR)/include/Cat_Render.h
 	@rm -f $(PSPDIR)/include/Cat_Stream.h
 	@rm -f $(PSPDIR)/include/Cat_StreamFile.h
 	@rm -f $(PSPDIR)/lib/$(TARGET_LIB)
