@@ -41,7 +41,8 @@ OBJS=\
 	source/Cat_StreamFile.o \
 	source/Cat_StreamMemory.o \
 	source/Cat_StreamPad.o \
-	source/Cat_Input.o
+	source/Cat_Input.o \
+	source/Cat_CritSec.o
 
 INSTALL_FILE=\
 	include/Cat_GetButtonSwapInfo.h \
@@ -65,7 +66,8 @@ INSTALL_FILE=\
 	include/Cat_StreamFile.h \
 	include/Cat_StreamMemory.h \
 	include/Cat_StreamPad.h \
-	include/Cat_Input.h
+	include/Cat_Input.h \
+	include/Cat_CritSec.h
 
 CFLAGS = -O6 -G0 -Wall -DUSE_CAT_IMAGELOADER_PNG -DUSE_CAT_IMAGELOADER_PCX
 INCDIR = ./include
@@ -106,5 +108,6 @@ uninstall:
 	@rm -f $(PSPDIR)/include/Cat_StreamMemory.h
 	@rm -f $(PSPDIR)/include/Cat_StreamPad.h
 	@rm -f $(PSPDIR)/include/Cat_Input.h
+	@rm -f $(PSPDIR)/include/Cat_CritSec.h
 	@rm -f $(PSPDIR)/lib/$(TARGET_LIB)
 	@echo "Done"
