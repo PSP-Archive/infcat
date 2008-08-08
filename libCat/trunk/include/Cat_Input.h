@@ -7,6 +7,10 @@
 #include <stdint.h>
 #include "Cat_Stream.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //! 最大入力数
 #define CAT_INPUT_MAX (32)
 
@@ -108,5 +112,9 @@ extern uint32_t Cat_InputGetRelease( uint32_t nPlayerIndex );
 	@return キー状態
 */
 extern uint32_t Cat_InputGetTrigger( uint32_t nPlayerIndex );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // INCL_Cat_Input_h
