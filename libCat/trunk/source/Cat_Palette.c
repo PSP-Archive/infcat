@@ -2,6 +2,7 @@
 // パレット関連
 
 #include "Cat_Palette.h"
+#include "Cat_Texture.h"
 #include <pspgu.h>
 #include <malloc.h>	// for memalign
 #include <string.h>
@@ -112,4 +113,60 @@ Cat_PaletteSetPalette( Cat_Palette* pPalette )
 	}
 	sceGuClutMode( (int)pPalette->ePaletteFormat, 0, pPalette->nMask, 0 );
 	sceGuClutLoad( pPalette->nSize, pPalette->pvData );
+}
+
+//! パレットの色を取得する
+/*!
+	@param[in]	pPalette	パレット
+	@param[in]	nIndex		取得する色のインデックス
+	@return RGBA8888形式の色
+*/
+uint32_t
+Cat_PaletteGetColor( const Cat_Palette* pPalette, uint32_t nIndex )
+{
+	if(pPalette == 0) {
+		return 0;
+	}
+	if(nIndex > pPalette->nMask) {
+		return 0;
+	}
+	switch(pPalette->ePaletteFormat) {
+		case FORMAT_PALETTE_8888:
+			return *((uint32_t*)pPalette->pvData + nIndex);
+		case FORMAT_PALETTE_5650:
+			return Cat_ColorConvert5650To8888( *((uint16_t*)pPalette->pvData + nIndex) );
+		case FORMAT_PALETTE_5551:
+			return Cat_ColorConvert5551To8888( *((uint16_t*)pPalette->pvData + nIndex) );
+		case FORMAT_PALETTE_4444:
+			return Cat_ColorConvert4444To8888( *((uint16_t*)pPalette->pvData + nIndex) );
+		default:
+			return 0;
+	}
+}
+
+//! パレットの色を取得する
+/*!
+	@param[in]	pPalette	パレット
+	@param[in]	nIndex		取得する色のインデックス
+	@return 色
+*/
+uint32_t
+Cat_PaletteGetColorRaw( const Cat_Palette* pPalette, uint32_t nIndex )
+{
+	if(pPalette == 0) {
+		return 0;
+	}
+	if(nIndex > pPalette->nMask) {
+		return 0;
+	}
+	switch(pPalette->ePaletteFormat) {
+		case FORMAT_PALETTE_8888:
+			return *((uint32_t*)pPalette->pvData + nIndex);
+		case FORMAT_PALETTE_5650:
+		case FORMAT_PALETTE_5551:
+		case FORMAT_PALETTE_4444:
+			return *((uint16_t*)pPalette->pvData + nIndex);
+		default:
+			return 0;
+	}
 }

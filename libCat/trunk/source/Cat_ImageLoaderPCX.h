@@ -30,6 +30,15 @@ extern int32_t Cat_ImageLoaderCheckPCX( Cat_Stream* pStream );
 */
 extern Cat_Texture* Cat_ImageLoaderLoadPCX( Cat_Stream* pStream );
 
+//! テクスチャをPCX形式で保存する
+/*!
+	@param[in]	pStream		ストリーム
+	@param[in]	pTexture	テクスチャ
+	@return	成功した場合は0 \n
+			失敗した場合は、負数を返す
+*/
+extern int32_t Cat_ImageLoaderSavePCX( Cat_Stream* pStream, Cat_Texture* pTexture );
+
 #ifdef __cplusplus
 }
 #endif

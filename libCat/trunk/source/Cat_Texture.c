@@ -549,3 +549,212 @@ Convert4( Cat_Texture* pTexture )
 		}
 	}
 }
+
+//! 32bit(RGBA8888)のテクスチャからテクセルを取得する
+/*!
+	@param[in]	pTexture	テクスチャ
+	@param[in]	x			x座標
+	@param[in]	y			y座標
+	@return	ピクセル値
+*/
+static uint32_t
+Cat_TextureGetPixel32( const Cat_Texture* pTexture, uint32_t x, uint32_t y )
+{
+	if(pTexture->nTexMode) {
+		uint32_t nOffset =
+			(y & 7) * 16
+			+ (y / 8) * (pTexture->nPitch * 8)
+			+ (x / 4) * (16*8)
+			+ (x & 3) * 4;
+		return *(uint32_t*)((uint8_t*)pTexture->pvData + nOffset);
+	} else {
+		uint32_t nOffset = x * 4 + y * pTexture->nPitch;
+		return *(uint32_t*)((uint8_t*)pTexture->pvData + nOffset);
+	}
+}
+
+//! 16bit(RGBA5551,RGBA5650,RGBA4444)のテクスチャからテクセルを取得する
+/*!
+	@param[in]	pTexture	テクスチャ
+	@param[in]	x			x座標
+	@param[in]	y			y座標
+	@return	ピクセル値
+*/
+static uint16_t
+Cat_TextureGetPixel16( Cat_Texture* pTexture, uint32_t x, uint32_t y )
+{
+	uint32_t nOffset;
+	if(pTexture->nTexMode) {
+		nOffset =
+			(y & 7) * 16
+			+ (y / 8) * (pTexture->nPitch * 8)
+			+ (x / 8) * (16*8)
+			+ (x & 7) * 2;
+	} else {
+		nOffset = x * 2 + y * pTexture->nPitch;
+	}
+	return *(uint16_t*)((uint8_t*)pTexture->pvData + nOffset);
+}
+
+//! 8bit(CLUT8)のテクスチャからテクセルを取得する
+/*!
+	@param[in]	pTexture	テクスチャ
+	@param[in]	x			x座標
+	@param[in]	y			y座標
+	@return	ピクセル値
+*/
+static uint8_t
+Cat_TextureGetPixel8( Cat_Texture* pTexture, uint32_t x, uint32_t y )
+{
+	uint32_t nOffset;
+	if(pTexture->nTexMode) {
+		nOffset =
+			(y & 7) * 16
+			+ (y / 8) * (pTexture->nPitch * 8)
+			+ (x / 16) * (16*8)
+			+ (x & 15);
+	} else {
+		nOffset = x + y * pTexture->nPitch;
+	}
+	return *((uint8_t*)pTexture->pvData + nOffset);
+}
+
+//! 8bit(CLUT8)のテクスチャからテクセルを取得する
+/*!
+	@param[in]	pTexture	テクスチャ
+	@param[in]	x			x座標
+	@param[in]	y			y座標
+	@return	ピクセル値
+*/
+static uint8_t
+Cat_TextureGetPixel4( Cat_Texture* pTexture, uint32_t x, uint32_t y )
+{
+	uint32_t nOffset;
+	if(pTexture->nTexMode) {
+		nOffset =
+			(y & 7) * 16
+			+ (y / 8) * (pTexture->nPitch * 8)
+			+ (x / 32) * (16*8)
+			+ ((x / 2) & 15);
+	} else {
+		nOffset = (x / 2) + y * pTexture->nPitch;
+	}
+	if(x & 1) {
+		return *((uint8_t*)pTexture->pvData + nOffset) >> 4;
+	} else {
+		return *((uint8_t*)pTexture->pvData + nOffset) & 0xF;
+	}
+}
+
+//! テクスチャからテクセルを取得する
+/*!
+	@param[in]	pTexture	テクスチャ
+	@param[in]	x			x座標
+	@param[in]	y			y座標
+	@return	RGBA8888形式のピクセル値
+*/
+uint32_t
+Cat_TextureGetPixel( Cat_Texture* pTexture, uint32_t x, uint32_t y )
+{
+	switch(pTexture->ePixelFormat) {
+		case FORMAT_PIXEL_5650:
+			return Cat_ColorConvert5650To8888( Cat_TextureGetPixel16( pTexture, x, y ) );
+		case FORMAT_PIXEL_5551:
+			return Cat_ColorConvert5551To8888( Cat_TextureGetPixel16( pTexture, x, y ) );
+		case FORMAT_PIXEL_4444:
+			return Cat_ColorConvert4444To8888( Cat_TextureGetPixel16( pTexture, x, y ) );
+		case FORMAT_PIXEL_8888:
+			return Cat_TextureGetPixel32( pTexture, x, y );
+		case FORMAT_PIXEL_CLUT8:
+			return Cat_PaletteGetColor( pTexture->pPalette, Cat_TextureGetPixel8( pTexture, x, y ) );
+		case FORMAT_PIXEL_CLUT4:
+			if(pTexture->pPalette4) {
+				return Cat_PaletteGetColor( pTexture->pPalette, pTexture->tbl4to8[Cat_TextureGetPixel4( pTexture, x, y )] );
+			} else {
+				return Cat_PaletteGetColor( pTexture->pPalette, Cat_TextureGetPixel4( pTexture, x, y ) );
+			}
+		default:
+			return 0;
+	}
+}
+
+//! テクスチャからテクセルを取得する
+/*!
+	@param[in]	pTexture	テクスチャ
+	@param[in]	x			x座標
+	@param[in]	y			y座標
+	@return	ピクセル値
+*/
+uint32_t
+Cat_TextureGetPixelRaw( Cat_Texture* pTexture, uint32_t x, uint32_t y )
+{
+	switch(pTexture->ePixelFormat) {
+		case FORMAT_PIXEL_5650:
+			return Cat_TextureGetPixel16( pTexture, x, y );
+		case FORMAT_PIXEL_5551:
+			return Cat_TextureGetPixel16( pTexture, x, y );
+		case FORMAT_PIXEL_4444:
+			return Cat_TextureGetPixel16( pTexture, x, y );
+		case FORMAT_PIXEL_8888:
+			return Cat_TextureGetPixel32( pTexture, x, y );
+		case FORMAT_PIXEL_CLUT8:
+			return Cat_TextureGetPixel8( pTexture, x, y );
+		case FORMAT_PIXEL_CLUT4:
+			if(pTexture->pPalette4) {
+				return pTexture->tbl4to8[Cat_TextureGetPixel4( pTexture, x, y )];
+			} else {
+				return Cat_TextureGetPixel4( pTexture, x, y );
+			}
+		default:
+			return 0;
+	}
+}
+
+//! RGBA4444からRGBA8888へ変換する
+uint32_t
+Cat_ColorConvert4444To8888( uint16_t rgba4444 )
+{
+	uint32_t r = ( (uint32_t)rgba4444        & 0xF) << 4;
+	uint32_t g = (((uint32_t)rgba4444 >>  4) & 0xF) << (4+8);
+	uint32_t b = (((uint32_t)rgba4444 >>  8) & 0xF) << (4+16);
+	uint32_t a = (((uint32_t)rgba4444 >> 12) & 0xF) << (4+24);
+
+	if(r) r |= 0xF;
+	if(g) g |= 0xF00;
+	if(b) b |= 0xF0000;
+	if(a) a |= 0xF000000;
+
+	return r | g | b | a;
+}
+
+//! RGBA5650からRGBA8888へ変換する
+uint32_t
+Cat_ColorConvert5650To8888( uint16_t rgba5650 )
+{
+	uint32_t r = ( (uint32_t)rgba5650        & 0x1F) << 3;
+	uint32_t g = (((uint32_t)rgba5650 >>  5) & 0x3F) << (2+8);
+	uint32_t b = (((uint32_t)rgba5650 >> 11) & 0x1F) << (3+16);
+
+	if(r) r |= 0x7;
+	if(g) g |= 0x300;
+	if(b) b |= 0x70000;
+
+	return r | g | b | 0xFF000000;
+}
+
+//! RGBA5551からRGBA8888へ変換する
+uint32_t
+Cat_ColorConvert5551To8888( uint16_t rgba5551 )
+{
+	uint32_t r = ( (uint32_t)rgba5551        & 0x1F) << 3;
+	uint32_t g = (((uint32_t)rgba5551 >>  5) & 0x1F) << (3+8);
+	uint32_t b = (((uint32_t)rgba5551 >> 11) & 0x1F) << (3+16);
+	uint32_t a = (((uint32_t)rgba5551 >> 15) & 0x01) << (7+24);
+
+	if(r) r |= 0x7;
+	if(g) g |= 0x700;
+	if(b) b |= 0x70000;
+	if(a) a |= 0x7F000000;
+
+	return r | g | b | a;
+}

@@ -49,7 +49,6 @@ typedef struct {
 //! テクスチャ作成
 /*!
 	\a pvImage は、mallocで確保したメモリを渡すこと。 \n
-	Cat_TextureRelease()で解放されるので、解放しないこと。
 
 	@param[in]	nWidth			テクスチャの横幅(ピクセル単位)
 	@param[in]	nHeight			テクスチャの高さ(ピクセル単位)
@@ -96,6 +95,33 @@ extern uint32_t Cat_TextureGetHeight( Cat_Texture* pTexture );
 	@return	ピッチ(バイト単位)
 */
 extern uint32_t Cat_TextureGetPitch( Cat_Texture* pTexture );
+
+//! テクスチャからテクセルを取得する
+/*!
+	@param[in]	pTexture	テクスチャ
+	@param[in]	x			x座標
+	@param[in]	y			y座標
+	@return	RGBA8888形式のピクセル値
+*/
+extern uint32_t Cat_TextureGetPixel( Cat_Texture* pTexture, uint32_t x, uint32_t y );
+
+//! テクスチャからテクセルを取得する
+/*!
+	@param[in]	pTexture	テクスチャ
+	@param[in]	x			x座標
+	@param[in]	y			y座標
+	@return	ピクセル値
+*/
+extern uint32_t Cat_TextureGetPixelRaw( Cat_Texture* pTexture, uint32_t x, uint32_t y );
+
+//! RGBA4444からRGBA8888へ変換する
+extern uint32_t Cat_ColorConvert4444To8888( uint16_t rgba4444 );
+
+//! RGBA5650からRGBA8888へ変換する
+extern uint32_t Cat_ColorConvert5650To8888( uint16_t rgba5650 );
+
+//! RGBA5551からRGBA8888へ変換する
+extern uint32_t Cat_ColorConvert5551To8888( uint16_t rgba5551 );
 
 #ifdef __cplusplus
 }

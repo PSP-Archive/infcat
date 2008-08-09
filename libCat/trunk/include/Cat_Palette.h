@@ -57,6 +57,22 @@ extern Cat_Palette* Cat_PaletteDuplicate( Cat_Palette* pPalette );
 */
 extern void Cat_PaletteSetPalette( Cat_Palette* pPalette );
 
+//! パレットの色を取得する
+/*!
+	@param[in]	pPalette	パレット
+	@param[in]	nIndex		取得する色のインデックス
+	@return RGBA8888形式の色
+*/
+extern uint32_t Cat_PaletteGetColor( const Cat_Palette* pPalette, uint32_t nIndex );
+
+//! パレットの色を取得する
+/*!
+	@param[in]	pPalette	パレット
+	@param[in]	nIndex		取得する色のインデックス
+	@return 色
+*/
+extern uint32_t Cat_PaletteGetColorRaw( const Cat_Palette* pPalette, uint32_t nIndex );
+
 #ifdef __cplusplus
 }
 #endif

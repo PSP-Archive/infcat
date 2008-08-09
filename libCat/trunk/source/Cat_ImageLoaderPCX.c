@@ -324,70 +324,6 @@ RunLengthWrite( Cat_Stream* pStream, void* pvData, int32_t nDataSize )
 	return 0;
 }
 
-static uint32_t
-GetPixcel8888( Cat_Texture* pTexture, uint32_t x, uint32_t y )
-{
-	if(pTexture->nTexMode) {
-		uint32_t nOffset =
-			(y & 7) * 16
-			+ (y / 8) * (pTexture->nPitch * 8)
-			+ (x / 4) * (16*8)
-			+ (x & 3) * 4;
-		return *(uint32_t*)((uint8_t*)pTexture->pvData + nOffset);
-	} else {
-		uint32_t nOffset = x * 4 + y * pTexture->nPitch;
-		return *(uint32_t*)((uint8_t*)pTexture->pvData + nOffset);
-	}
-}
-
-static uint16_t
-GetPixcel4444( Cat_Texture* pTexture, uint32_t x, uint32_t y )
-{
-	if(pTexture->nTexMode) {
-		uint32_t nOffset =
-			(y & 7) * 16
-			+ (y / 8) * (pTexture->nPitch * 8)
-			+ (x / 8) * (16*8)
-			+ (x & 7) * 2;
-		return *(uint16_t*)((uint8_t*)pTexture->pvData + nOffset);
-	} else {
-		uint32_t nOffset = x * 2 + y * pTexture->nPitch;
-		return *(uint16_t*)((uint8_t*)pTexture->pvData + nOffset);
-	}
-}
-
-static uint16_t
-GetPixcel5650( Cat_Texture* pTexture, uint32_t x, uint32_t y )
-{
-	if(pTexture->nTexMode) {
-		uint32_t nOffset =
-			(y & 7) * 16
-			+ (y / 8) * (pTexture->nPitch * 8)
-			+ (x / 8) * (16*8)
-			+ (x & 7) * 2;
-		return *(uint16_t*)((uint8_t*)pTexture->pvData + nOffset);
-	} else {
-		uint32_t nOffset = x * 2 + y * pTexture->nPitch;
-		return *(uint16_t*)((uint8_t*)pTexture->pvData + nOffset);
-	}
-}
-
-static uint16_t
-GetPixcel5551( Cat_Texture* pTexture, uint32_t x, uint32_t y )
-{
-	if(pTexture->nTexMode) {
-		uint32_t nOffset =
-			(y & 7) * 16
-			+ (y / 8) * (pTexture->nPitch * 8)
-			+ (x / 8) * (16*8)
-			+ (x & 7) * 2;
-		return *(uint16_t*)((uint8_t*)pTexture->pvData + nOffset);
-	} else {
-		uint32_t nOffset = x * 2 + y * pTexture->nPitch;
-		return *(uint16_t*)((uint8_t*)pTexture->pvData + nOffset);
-	}
-}
-
 //! PCX形式を読み込んでテクスチャを作成する
 /*!
 	@param[in]	pStream		ストリーム
@@ -459,11 +395,7 @@ Cat_ImageLoaderSavePCX( Cat_Stream* pStream, Cat_Texture* pTexture )
 				uint8_t nData;
 				for(y = 0; y < nHeight; y++) {
 					for(x = 0; x < nWidth; x++) {
-						if(x & 1) {
-							*pbSrc++ = *((uint8_t*)pTexture->pvData + pTexture->nPitch * y + x / 2) >> 4;
-						} else {
-							*pbSrc++ = *((uint8_t*)pTexture->pvData + pTexture->nPitch * y + x / 2) & 0xF;
-						}
+						*pbSrc++ = Cat_TextureGetPixelRaw( pTexture, x, y );
 					}
 					if(nWidth & 1) {
 						pbSrc++;
@@ -482,29 +414,26 @@ Cat_ImageLoaderSavePCX( Cat_Stream* pStream, Cat_Texture* pTexture )
 				}
 				if(pTexture->pPalette4 == 0) {
 					for(i = 0; i < 16; i++) {
-						if(Cat_StreamWrite( pStream, (uint8_t*)pTexture->pPalette->pvData + i * 4, 3 ) != 3) {
-							CAT_FREE( pbImage );
-							return -1;
-						}
-					}
-					for(;i < 256; i++) {
-						if(Cat_StreamWrite( pStream, &pTexture->pPalette->pvData, 3 ) != 3) {
+						uint32_t nColor = Cat_PaletteGetColor( pTexture->pPalette, i );
+						if(Cat_StreamWrite( pStream, &nColor, 3 ) != 3) {
 							CAT_FREE( pbImage );
 							return -1;
 						}
 					}
 				} else {
 					for(i = 0; i < 16; i++) {
-						if(Cat_StreamWrite( pStream, &((uint32_t*)pTexture->pPalette->pvData)[pTexture->tbl4to8[i]], 3 ) != 3) {
+						uint32_t nColor = Cat_PaletteGetColor( pTexture->pPalette, pTexture->tbl4to8[i] );
+						if(Cat_StreamWrite( pStream, &nColor, 3 ) != 3) {
 							CAT_FREE( pbImage );
 							return -1;
 						}
 					}
-					for(;i < 256; i++) {
-						if(Cat_StreamWrite( pStream, &pTexture->pPalette->pvData, 3 ) != 3) {
-							CAT_FREE( pbImage );
-							return -1;
-						}
+				}
+				for(;i < 256; i++) {
+					uint32_t nColor = 0;
+					if(Cat_StreamWrite( pStream, &nColor, 3 ) != 3) {
+						CAT_FREE( pbImage );
+						return -1;
 					}
 				}
 			}
@@ -519,7 +448,7 @@ Cat_ImageLoaderSavePCX( Cat_Stream* pStream, Cat_Texture* pTexture )
 				uint8_t nData;
 				for(y = 0; y < nHeight; y++) {
 					for(x = 0; x < nWidth; x++) {
-						*pbSrc++ = *((uint8_t*)pTexture->pvData + pTexture->nPitch * y + x);
+						*pbSrc++ = Cat_TextureGetPixelRaw( pTexture, x, y );
 					}
 					if(nWidth & 1) {
 						pbSrc++;
@@ -537,7 +466,8 @@ Cat_ImageLoaderSavePCX( Cat_Stream* pStream, Cat_Texture* pTexture )
 					return -1;
 				}
 				for(i = 0; i < 256; i++) {
-					if(Cat_StreamWrite( pStream, (uint8_t*)pTexture->pPalette->pvData + i * 4, 3 ) != 3) {
+					uint32_t nColor = Cat_PaletteGetColor( pTexture->pPalette, i );
+					if(Cat_StreamWrite( pStream, &nColor, 3 ) != 3) {
 						CAT_FREE( pbImage );
 						return -1;
 					}
@@ -545,74 +475,8 @@ Cat_ImageLoaderSavePCX( Cat_Stream* pStream, Cat_Texture* pTexture )
 			}
 			break;
 		case FORMAT_PIXEL_4444:
-			{
-				uint8_t* pbSrc = pbImage;
-				uint32_t x;
-				uint32_t y;
-				for(y = 0; y < nHeight; y++) {
-					for(x = 0; x < nWidth; x++) {
-						uint16_t nColor = GetPixcel4444( pTexture, x, y );
-						uint8_t r = (nColor >>  4) & 0xf;
-						uint8_t g = (nColor >>  4) & 0xf;
-						uint8_t b = nColor         & 0xf;
-						pbSrc[x                  ] = r;
-						pbSrc[x + header.nPitch*1] = g;
-						pbSrc[x + header.nPitch*2] = b;
-					}
-					pbSrc += header.nPitch * 3;
-				}
-				if(RunLengthWrite( pStream, pbImage, nImageSize ) < 0) {
-					CAT_FREE( pbImage );
-					return -1;
-				}
-			}
-			break;
 		case FORMAT_PIXEL_5551:
-			{
-				uint8_t* pbSrc = pbImage;
-				uint32_t x;
-				uint32_t y;
-				for(y = 0; y < nHeight; y++) {
-					for(x = 0; x < nWidth; x++) {
-						uint16_t nColor = GetPixcel5551( pTexture, x, y );
-						uint8_t r = (nColor >> 10) & 0x1f;
-						uint8_t g = (nColor >>  5) & 0x1f;
-						uint8_t b = nColor         & 0x1f;
-						pbSrc[x                  ] = r << 3;
-						pbSrc[x + header.nPitch*1] = g << 3;
-						pbSrc[x + header.nPitch*2] = b << 3;
-					}
-					pbSrc += header.nPitch * 3;
-				}
-				if(RunLengthWrite( pStream, pbImage, nImageSize ) < 0) {
-					CAT_FREE( pbImage );
-					return -1;
-				}
-			}
-			break;
 		case FORMAT_PIXEL_5650:
-			{
-				uint8_t* pbSrc = pbImage;
-				uint32_t x;
-				uint32_t y;
-				for(y = 0; y < nHeight; y++) {
-					for(x = 0; x < nWidth; x++) {
-						uint16_t nColor = GetPixcel5650( pTexture, x, y );
-						uint8_t r = (nColor >> 11) & 0x1f;
-						uint8_t g = (nColor >>  5) & 0x3f;
-						uint8_t b = nColor         & 0x1f;
-						pbSrc[x                  ] = r << 3;
-						pbSrc[x + header.nPitch*1] = g << 3;
-						pbSrc[x + header.nPitch*2] = b << 3;
-					}
-					pbSrc += header.nPitch * 3;
-				}
-				if(RunLengthWrite( pStream, pbImage, nImageSize ) < 0) {
-					CAT_FREE( pbImage );
-					return -1;
-				}
-			}
-			break;
 		case FORMAT_PIXEL_8888:
 			{
 				uint8_t* pbSrc = pbImage;
@@ -620,7 +484,7 @@ Cat_ImageLoaderSavePCX( Cat_Stream* pStream, Cat_Texture* pTexture )
 				uint32_t y;
 				for(y = 0; y < nHeight; y++) {
 					for(x = 0; x < nWidth; x++) {
-						uint32_t nColor = GetPixcel8888( pTexture, x, y );
+						uint32_t nColor = Cat_TextureGetPixel( pTexture, x, y );
 						pbSrc[x                  ] = *((uint8_t*)&nColor + 0);
 						pbSrc[x + header.nPitch*1] = *((uint8_t*)&nColor + 1);
 						pbSrc[x + header.nPitch*2] = *((uint8_t*)&nColor + 2);
