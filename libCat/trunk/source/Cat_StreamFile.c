@@ -161,7 +161,7 @@ Cat_StreamFileWriteOpen( const char* pszFilename )
 		/* 引数が変 */
 		return 0;
 	}
-	fp = fopen( pszFilename, "rb" );
+	fp = fopen( pszFilename, "wb" );
 	if(fp == 0) {
 		/* 読み込む失敗 */
 		return 0;
