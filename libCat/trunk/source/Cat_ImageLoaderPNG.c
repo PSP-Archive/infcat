@@ -35,6 +35,10 @@ Cat_ImageLoaderCheckPNG( Cat_Stream* pStream )
 	uint8_t sig[PNG_BYTES_TO_CHECK];
 	int64_t pos;
 
+	if(pStream == 0) {
+		return 0;
+	}
+
 	pos = Cat_StreamTell( pStream );
 	if(pos >= 0) {
 		if(Cat_StreamRead( pStream, sig, PNG_BYTES_TO_CHECK ) == PNG_BYTES_TO_CHECK) {
@@ -76,6 +80,10 @@ Cat_ImageLoaderLoadPNG( Cat_Stream* pStream )
 	unsigned char *image;
 	unsigned long i;
 	int fNeedUpdate;
+
+	if(pStream == 0) {
+		return 0;
+	}
 
 	// 初期化
 	png_ptr = png_create_read_struct( PNG_LIBPNG_VER_STRING, 0, 0, 0 );
@@ -188,10 +196,7 @@ Cat_ImageLoaderLoadPNG( Cat_Stream* pStream )
 	}
 
 	// 後始末
-	// imageはテクスチャ作成が成功したら、テクスチャ側で解放されるのでここでは解放しない
-	if(rc == 0) {
-		CAT_FREE( image );
-	}
+	CAT_FREE( image );
 	CAT_FREE( imageRow );
 	png_destroy_read_struct( &png_ptr, &info_ptr, &info_end );
 	return rc;

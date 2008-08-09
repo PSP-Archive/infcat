@@ -2,6 +2,7 @@
 // テクスチャ関連
 
 #include <pspgu.h>
+#include <psputils.h>
 #include <string.h>
 #include <malloc.h>	// for memalign
 #include "Cat_Texture.h"
@@ -23,7 +24,7 @@
 
 
 //! サイズを調整する
-static void ConvertSize( Cat_Texture* pTexture );
+static int32_t ConvertSize( Cat_Texture* pTexture );
 //! テクスチャ内を入れ替えて、高速で描画できるように変換
 static void ConvertImageSwap( Cat_Texture* pTexture );
 //! 使っている色を調べて16色以下なら4bitにする
@@ -95,24 +96,39 @@ Cat_TextureCreate( uint32_t nWidth, uint32_t nHeight, uint32_t nPitch, void* pvI
 
 	rc = CAT_MALLOC( sizeof(Cat_Texture) );
 	if(rc) {
+		uint32_t i;
 		rc->ePixelFormat = ePixelFormat;
-		rc->nWidth       = nWidth;
-		rc->nHeight      = nHeight;
-		rc->nPitch       = nPitch;
-		rc->nWidth2      = up2( nWidth );
-		rc->nHeight2     = up2( nHeight );
-		rc->pPalette     = pPalette;
-		rc->pPalette4    = 0;
-		rc->nTexMode     = CAT_TEXMODE_NORMAL;
-		rc->pvData       = pvImage;
+		rc->nOriginalWidth  = nWidth;		// オリジナル
+		rc->nOriginalHeight = nHeight;		// オリジナル
+		rc->nTextureWidth   = nWidth;
+		rc->nTextureHeight  = nHeight;
+		rc->nWidth          = nWidth;
+		rc->nWidth2         = up2( nWidth );
+		rc->pPalette        = pPalette;
+		rc->pPalette4       = 0;
+		rc->nTexMode        = CAT_TEXMODE_NORMAL;
 		if(rc->pPalette) {
 			rc->pPalette->nRef++;
 		}
 
+		// イメージのメモリ確保と初期化
+		rc->nHeight  = (nHeight + 7) & ~7;
+		rc->nHeight2 = up2( rc->nHeight );
+		rc->nPitch   = (nPitch + 15) & ~15;
+		rc->pvData   = CAT_MALLOC( rc->nPitch * rc->nHeight );
+		if(rc->pvData == 0) {
+			// 駄目だった
+			Cat_TextureRelease( rc );
+			return 0;
+		}
+		memset( rc->pvData, 0, rc->nPitch * rc->nHeight );
+		for(i = 0; i < nHeight; i++) {
+			memcpy( (uint8_t*)rc->pvData + rc->nPitch * i, (uint8_t*)pvImage + nPitch * i, nPitch );
+		}
+
 		// テクスチャサイズが大きかったら小さくする
 		if((rc->nWidth > 512) || (rc->nHeight > 512)) {
-			ConvertSize( rc );
-			if((rc->nWidth > 512) || (rc->nHeight > 512)) {
+			if(!ConvertSize( rc )) {
 				// 駄目だった
 				Cat_TextureRelease( rc );
 				return 0;
@@ -145,6 +161,10 @@ Cat_TextureCreate( uint32_t nWidth, uint32_t nHeight, uint32_t nPitch, void* pvI
 		}
 		// イメージスワップ
 		ConvertImageSwap( rc );
+
+		// キャッシュを吐き出して、イメージデータ部分のキャッシュを無効に
+		// テクスチャは、基本的に作ったら変更しないので
+		sceKernelDcacheWritebackInvalidateRange( rc->pvData, rc->nHeight * rc->nPitch );
 	}
 	return rc;
 }
@@ -233,7 +253,7 @@ Cat_TextureSetTexture( Cat_Texture* pTexture )
 uint32_t
 Cat_TextureGetWidth( Cat_Texture* pTexture )
 {
-	return pTexture->nWidth;
+	return pTexture->nOriginalWidth;
 }
 
 //! 縦幅を取得
@@ -244,7 +264,7 @@ Cat_TextureGetWidth( Cat_Texture* pTexture )
 uint32_t
 Cat_TextureGetHeight( Cat_Texture* pTexture )
 {
-	return pTexture->nHeight;
+	return pTexture->nOriginalHeight;
 }
 
 //! ピッチを取得
@@ -259,7 +279,7 @@ Cat_TextureGetPitch( Cat_Texture* pTexture )
 }
 
 //! サイズを調整する
-static void
+static int32_t
 ConvertSize( Cat_Texture* pTexture )
 {
 	uint32_t dx;
@@ -271,9 +291,13 @@ ConvertSize( Cat_Texture* pTexture )
 	uint32_t w;
 	uint32_t pitch;
 	uint32_t ppb;
+	uint32_t x;
+	uint32_t y;
+	uint32_t yy;
+	uint32_t xx;
 
 	if(pTexture == 0) {
-		return;
+		return 0;
 	}
 
 	nWidth2  = up2( pTexture->nWidth );
@@ -299,7 +323,7 @@ ConvertSize( Cat_Texture* pTexture )
 	} else if(nWidth2 <= 512*512) {
 		dx = 512;
 	} else {
-		return;	/* さすがに無理 */
+		return 0;	/* さすがに無理 */
 	}
 
 	if(nHeight2 <= 512) {
@@ -323,7 +347,7 @@ ConvertSize( Cat_Texture* pTexture )
 	} else if(nHeight2 <= 512*512) {
 		dy = 512;
 	} else {
-		return;	/* さすがに無理 */
+		return 0;	/* さすがに無理 */
 	}
 
 	/* 縮小した情報へ */
@@ -358,64 +382,69 @@ ConvertSize( Cat_Texture* pTexture )
 	}
 	/* テクスチャ縮小 */
 	work = (uint8_t*)CAT_MALLOC( pitch * h );
-	if(work) {
-		uint32_t x;
-		uint32_t y;
-		uint32_t yy;
-		uint32_t xx;
-		memset( work, 0, pitch * h );
-		if(pTexture->ePixelFormat == FORMAT_PIXEL_CLUT4) {
-			yy = 0;
-			for(y = 0; y < pTexture->nHeight;) {
-				xx = 0;
-				for(x = 0; x < pTexture->nWidth; x += dx) {
-					uint8_t c = *((uint8_t*)pTexture->pvData + x / 2 + y * pTexture->nPitch);
-					if(x & 1) {
-						c &= 0xf;
-					} else {
-						c >>= 4;
-					}
-					if(xx & 1) {
-						/* 奇数 */
-						work[xx / 2 + yy * pitch] = (work[xx / 2 + yy * pitch] & 0xf0) | c;
-					} else {
-						work[xx / 2 + yy * pitch] = (work[xx / 2 + yy * pitch] & 0xf) | (c << 4);
-					}
-					xx++;
-				}
-				yy++;
-				y += dy;
-			}
-		} else {
-			yy = 0;
-			for(y = 0; y < pTexture->nHeight;) {
-				xx = 0;
-				for(x = 0; x < pTexture->nWidth; x += dx) {
-					memcpy( &work[xx * ppb + yy * pitch], ((uint8_t*)pTexture->pvData + x * ppb + y * pTexture->nPitch), ppb );
-					xx++;
-				}
-				yy++;
-				y += dy;
-			}
-		}
-		CAT_FREE( pTexture->pvData );
-		pTexture->pvData   = (void*)work;
-		pTexture->nPitch   = pitch;
-		pTexture->nWidth   = w;
-		pTexture->nHeight  = h;
-		pTexture->nWidth2  = up2( pTexture->nWidth );
-		pTexture->nHeight2 = up2( pTexture->nHeight );
+	if(work == 0) {
+		return 0;
 	}
+	memset( work, 0, pitch * h );
+	if(pTexture->ePixelFormat == FORMAT_PIXEL_CLUT4) {
+		yy = 0;
+		for(y = 0; y < pTexture->nHeight;) {
+			xx = 0;
+			for(x = 0; x < pTexture->nWidth; x += dx) {
+				uint8_t c = *((uint8_t*)pTexture->pvData + x / 2 + y * pTexture->nPitch);
+				if(x & 1) {
+					c &= 0xf;
+				} else {
+					c >>= 4;
+				}
+				if(xx & 1) {
+					/* 奇数 */
+					work[xx / 2 + yy * pitch] = (work[xx / 2 + yy * pitch] & 0xf0) | c;
+				} else {
+					work[xx / 2 + yy * pitch] = (work[xx / 2 + yy * pitch] & 0xf) | (c << 4);
+				}
+				xx++;
+			}
+			yy++;
+			y += dy;
+		}
+	} else {
+		yy = 0;
+		for(y = 0; y < pTexture->nHeight;) {
+			xx = 0;
+			for(x = 0; x < pTexture->nWidth; x += dx) {
+				memcpy( &work[xx * ppb + yy * pitch], ((uint8_t*)pTexture->pvData + x * ppb + y * pTexture->nPitch), ppb );
+				xx++;
+			}
+			yy++;
+			y += dy;
+		}
+	}
+	CAT_FREE( pTexture->pvData );
+	pTexture->pvData   = (void*)work;
+	pTexture->nPitch   = pitch;
+	pTexture->nWidth   = w;
+	pTexture->nHeight  = h;
+	pTexture->nWidth2  = up2( pTexture->nWidth );
+	pTexture->nHeight2 = up2( pTexture->nHeight );
+	pTexture->nTextureWidth  = pTexture->nOriginalWidth  / dx;
+	pTexture->nTextureHeight = pTexture->nOriginalHeight / dy;
+	return 1;
 }
 
 //! テクスチャ内を入れ替えて、高速で描画できるように変換
+/*!
+	高さは8の倍数でないと変換されない
+	@param[in,out]	pTexture	テクスチャ
+*/
 static void
 ConvertImageSwap( Cat_Texture* pTexture )
 {
-	if(pTexture->pvData && (pTexture->nTexMode == CAT_TEXMODE_NORMAL)) {
+	if(pTexture->pvData && (pTexture->nTexMode == CAT_TEXMODE_NORMAL)
+		&& ((pTexture->nHeight & 7) == 0)) {
 		uint8_t* work = (uint8_t*)CAT_MALLOC( pTexture->nPitch * 8 );
 		if(work) {
-			uint32_t h = ((pTexture->nHeight + 7) & ~7);	/* 高さ8dot単位に */
+			uint32_t h = pTexture->nHeight;
 			uint8_t* pSrc = (uint8_t*)pTexture->pvData;
 			uint32_t y;
 			uint32_t x;
@@ -438,6 +467,9 @@ ConvertImageSwap( Cat_Texture* pTexture )
 }
 
 //! 使っている色を調べて16色以下なら4bitにする
+/*!
+	@param[in,out]	pTexture	テクスチャ
+*/
 static void
 Convert4( Cat_Texture* pTexture )
 {
@@ -447,7 +479,7 @@ Convert4( Cat_Texture* pTexture )
 	uint32_t count;
 	uint8_t* work;
 
-	if((pTexture == 0) || (pTexture->pvData == 0)) {
+	if((pTexture == 0) || (pTexture->pvData == 0) || (pTexture->pPalette == 0)) {
 		return;
 	}
 
@@ -492,7 +524,7 @@ Convert4( Cat_Texture* pTexture )
 
 	/* 16色に変換する */
 	int h = ((pTexture->nHeight + 7) & ~7);						/* 8の倍数に */
-	int pitch = ((pTexture->nWidth * 4 + 127) & ~127) / 8;		/* 16バイト単位に */
+	int pitch = ((pTexture->nWidth * 4 + 127) & ~127) / 8;		/* 16バイトの倍数に */
 	work = (uint8_t*)CAT_MALLOC( pitch * h );
 	if(work) {
 		memset( work, 0, pitch * h );

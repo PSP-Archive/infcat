@@ -25,20 +25,25 @@ typedef enum {
 
 //! テクスチャ構造体
 typedef struct {
-	uint32_t		nWidth;			/*!< 横幅							*/
-	uint32_t		nHeight;		/*!< 高さ							*/
-	uint32_t		nPitch;			/*!< ピッチ							*/
-	FORMAT_PIXEL	ePixelFormat;	/*!< ピクセルフォーマット			*/
-	uint32_t		nTexMode;		/*!< テクスチャモード				*/
-	uint32_t		nWidth2;		/*!< 横幅2の乗数					*/
-	uint32_t		nHeight2;		/*!< 縦幅2の乗数					*/
-	uint32_t		nWidth16;		/*!< 縦幅16バイト単位				*/
-	void*			pvData;			/*!< ピクセルデータ					*/
-	float			fScaleWidth;	/*!< 横スケール						*/
-	float			fScaleHeight;	/*!< 縦スケール						*/
-	Cat_Palette*	pPalette;		/*!< パレット						*/
-	int32_t			tbl4to8[16];	/*!< 変換テーブル					*/
-	Cat_Palette*	pPalette4;		/*!< 4bitパレット					*/
+	uint32_t		nOriginalWidth;		/*!< オリジナルの横幅				*/
+	uint32_t		nOriginalHeight;	/*!< オリジナルの高さ				*/
+	uint32_t		nTextureWidth;		/*!< 変換後のテクスチャの横幅		*/
+	uint32_t		nTextureHeight;		/*!< 変換後のテクスチャの高さ		*/
+//
+	uint32_t		nWidth;				/*!< 内部で管理している横幅			*/
+	uint32_t		nHeight;			/*!< 内部で管理している高さ			*/
+	uint32_t		nPitch;				/*!< ピッチ							*/
+	FORMAT_PIXEL	ePixelFormat;		/*!< ピクセルフォーマット			*/
+	uint32_t		nTexMode;			/*!< テクスチャモード				*/
+	uint32_t		nWidth2;			/*!< 横幅2の乗数					*/
+	uint32_t		nHeight2;			/*!< 縦幅2の乗数					*/
+	uint32_t		nWidth16;			/*!< 縦幅16バイト単位				*/
+	void*			pvData;				/*!< ピクセルデータ					*/
+	float			fScaleWidth;		/*!< 横スケール						*/
+	float			fScaleHeight;		/*!< 縦スケール						*/
+	Cat_Palette*	pPalette;			/*!< パレット						*/
+	int32_t			tbl4to8[16];		/*!< 変換テーブル					*/
+	Cat_Palette*	pPalette4;			/*!< 4bitパレット					*/
 } Cat_Texture;
 
 //! テクスチャ作成
