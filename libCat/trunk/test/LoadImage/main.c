@@ -20,7 +20,7 @@
 
 // 描画
 void
-RenderSprite( float x, float y, float z, float w, float h )
+RenderSprite( float x, float y, float z, float w, float h, float tw, float th )
 {
 	struct vertex_format {
 		short   u,v;
@@ -33,8 +33,8 @@ RenderSprite( float x, float y, float z, float w, float h )
 	vert[0].x     = (short)x;
 	vert[0].y     = (short)y;
 	vert[0].z     = (short)z;
-	vert[1].u     = (short)w;
-	vert[1].v     = (short)h;
+	vert[1].u     = (short)tw;
+	vert[1].v     = (short)th;
 	vert[1].x     = (short)(x + w);
 	vert[1].y     = (short)(y + h);
 	vert[1].z     = (short)z;
@@ -72,16 +72,18 @@ main()
 	const float z = 0.0f;
 	const float w = (float)Cat_TextureGetWidth( pTexture );
 	const float h = (float)Cat_TextureGetHeight( pTexture );
-	Cat_RenderInit( CAT_RENDER_DEFAULT );		// 初期化処理
+	const float tw = (float)pTexture->nTextureWidth;	//! @todo
+	const float th = (float)pTexture->nTextureHeight;	//! @todo
+	Cat_RenderInit( CAT_RENDER_DEFAULT );				// 初期化処理
 	for(;;) {
-		Cat_RenderBegin(); {					// 描画開始
-			Cat_TextureSetTexture( pTexture );	// テクスチャを設定して描画
-			RenderSprite( x, y, z, w, h );		// 
-		} Cat_RenderEnd();						// 描画終了
-		Cat_RenderScreenUpdate();				// 画面更新
+		Cat_RenderBegin(); {							// 描画開始
+			Cat_TextureSetTexture( pTexture );			// テクスチャを設定して描画
+			RenderSprite( x, y, z, w, h, tw, th );		// 
+		} Cat_RenderEnd();								// 描画終了
+		Cat_RenderScreenUpdate();						// 画面更新
 	}
-	Cat_TextureRelease( pTexture );				// テクスチャ解放
-	Cat_RenderTerm();							// 終了処理
+	Cat_TextureRelease( pTexture );						// テクスチャ解放
+	Cat_RenderTerm();									// 終了処理
 
 	HALT();
 	return 0;
