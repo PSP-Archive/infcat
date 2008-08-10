@@ -54,7 +54,7 @@ static Cat_InputContext* gpInputContext = 0;
 static void
 UpdateKeyState( Cat_InputKeyState* pKeyState, uint32_t nKeyData )
 {
-	pKeyState->nTrigger  = pKeyState->nPrevious ^ nKeyData;
+	pKeyState->nTrigger  = pKeyState->nCurrent ^ nKeyData;
 	pKeyState->nPressed  = pKeyState->nTrigger & nKeyData;
 	pKeyState->nRelease  = pKeyState->nTrigger & ~nKeyData;
 	pKeyState->nPrevious = pKeyState->nCurrent;
@@ -72,6 +72,7 @@ Cat_InputInit( void )
 		memset( gpInputContext, 0, sizeof(Cat_InputContext) );
 
 		// プレイヤ0番にPadを割り当てる
+		Cat_InputSetMyPlayerIndex( 0 );
 		Cat_InputSetStream( 0, Cat_StreamPadReadOpen(), 1 );
 	}
 }
