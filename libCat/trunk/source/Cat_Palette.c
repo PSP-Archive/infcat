@@ -87,6 +87,19 @@ Cat_PaletteRelease( Cat_Palette* pPalette )
 	}
 }
 
+//! 参照カウンタを加算する
+/*!
+	@param[in]	pPalette	パレット
+*/
+void
+Cat_PaletteAddRef( Cat_Palette* pPalette )
+{
+	if(pPalette == 0) {
+		return;
+	}
+	pPalette->nRef++;
+}
+
 //! パレットを複製する
 /*!
 	@param[in]	pPalette	解放するパレット

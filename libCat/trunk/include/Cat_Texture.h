@@ -29,6 +29,7 @@ typedef struct {
 	uint32_t		nOriginalHeight;	/*!< オリジナルの高さ				*/
 	uint32_t		nTextureWidth;		/*!< 変換後のテクスチャの横幅		*/
 	uint32_t		nTextureHeight;		/*!< 変換後のテクスチャの高さ		*/
+	uint32_t		nRefCounter;		/*!< 参照カウンタ					*/
 //
 	uint32_t		nWidth;				/*!< 内部で管理している横幅			*/
 	uint32_t		nHeight;			/*!< 内部で管理している高さ			*/
@@ -60,6 +61,13 @@ typedef struct {
 	@see	Cat_TextureRelease()
 */
 extern Cat_Texture* Cat_TextureCreate( uint32_t nWidth, uint32_t nHeight, uint32_t nPitch, void* pvImage, FORMAT_PIXEL ePixelFormat, Cat_Palette* pPalette );
+
+//! 参照カウンタを加算する
+/*!
+	@param[in]	pTexture	解放するテクスチャ
+	@see	Cat_TextureRelease()
+*/
+extern void Cat_TextureAddRef( Cat_Texture* pTexture );
 
 //! テクスチャ解放
 /*!

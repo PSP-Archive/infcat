@@ -78,7 +78,6 @@ inline uint32_t up2( uint32_t x )
 //! テクスチャ作成
 /*!
 	\a pvImage は、mallocで確保したメモリを渡すこと。 \n
-	Cat_TextureRelease()で解放されるので、解放しないこと。
 
 	@param[in]	nWidth			テクスチャの横幅(ピクセル単位)
 	@param[in]	nHeight			テクスチャの高さ(ピクセル単位)
@@ -107,6 +106,7 @@ Cat_TextureCreate( uint32_t nWidth, uint32_t nHeight, uint32_t nPitch, void* pvI
 		rc->pPalette        = pPalette;
 		rc->pPalette4       = 0;
 		rc->nTexMode        = CAT_TEXMODE_NORMAL;
+		rc->nRefCounter     = 1;
 		if(rc->pPalette) {
 			rc->pPalette->nRef++;
 		}
@@ -135,8 +135,10 @@ Cat_TextureCreate( uint32_t nWidth, uint32_t nHeight, uint32_t nPitch, void* pvI
 			}
 		}
 
+#if 0
 		// 使っている色を調べて16色以下なら4bitにする
 		Convert4( rc );
+#endif
 
 		// テクスチャスケーリング
 		rc->fScaleWidth  = (float)rc->nWidth  / (float)rc->nWidth2;
@@ -169,6 +171,20 @@ Cat_TextureCreate( uint32_t nWidth, uint32_t nHeight, uint32_t nPitch, void* pvI
 	return rc;
 }
 
+//! 参照カウンタを加算する
+/*!
+	@param[in]	pTexture	解放するテクスチャ
+	@see	Cat_TextureRelease()
+*/
+void
+Cat_TextureAddRef( Cat_Texture* pTexture )
+{
+	if(pTexture == 0) {
+		return;
+	}
+	pTexture->nRefCounter++;
+}
+
 //! テクスチャ解放
 /*!
 	@param[in]	pTexture	解放するテクスチャ
@@ -181,22 +197,27 @@ Cat_TextureRelease( Cat_Texture* pTexture )
 		return;
 	}
 
-	if(pTexture->pPalette) {
-		// パレット解放
-		Cat_PaletteRelease( pTexture->pPalette );
-		pTexture->pPalette = 0;
+	if(pTexture->nRefCounter == 1) {
+		if(pTexture->pPalette) {
+			// パレット解放
+			Cat_PaletteRelease( pTexture->pPalette );
+			pTexture->pPalette = 0;
+		}
+		if(pTexture->pPalette4) {
+			// パレット解放
+			Cat_PaletteRelease( pTexture->pPalette4 );
+			pTexture->pPalette4 = 0;
+		}
+		if(pTexture->pvData) {
+			// イメージ解放
+			CAT_FREE( pTexture->pvData );
+			pTexture->pvData = 0;
+		}
+		pTexture->nRefCounter = 0;
+		CAT_FREE( pTexture );
+	} else {
+		pTexture->nRefCounter--;
 	}
-	if(pTexture->pPalette4) {
-		// パレット解放
-		Cat_PaletteRelease( pTexture->pPalette4 );
-		pTexture->pPalette4 = 0;
-	}
-	if(pTexture->pvData) {
-		// イメージ解放
-		CAT_FREE( pTexture->pvData );
-		pTexture->pvData = 0;
-	}
-	CAT_FREE( pTexture );
 }
 
 //! テクスチャ設定

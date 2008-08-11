@@ -51,6 +51,12 @@ extern void Cat_PaletteRelease( Cat_Palette* pPalette );
 */
 extern Cat_Palette* Cat_PaletteDuplicate( Cat_Palette* pPalette );
 
+//! 参照カウンタを加算する
+/*!
+	@param[in]	pPalette	パレット
+*/
+extern void Cat_PaletteAddRef( Cat_Palette* pPalette );
+
 //! パレットを設定する
 /*!
 	@param[in]	pPalette	設定するパレット
