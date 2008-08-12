@@ -1,3 +1,5 @@
+//! @file icSffLoader.cpp
+// Sff形式の画像を読み込む
 
 #include "icCore.h"
 
@@ -42,8 +44,19 @@ struct SffImageHeader {
 //! 識別用文字列
 #define MAGIC_STRING "ElecbyteSpr"
 
+//! デストラクタ
+icSff::~icSff()
+{
+	Release();
+}
+
 //! ヘッダをチェックする
-bool
+/*!
+	@param[in]	header	Sffヘッダ
+	@return	大丈夫ならtrue \n
+			駄目ならfalseを返す
+*/
+static bool
 CheckHeader( const SffFileHeader& header )
 {
 	return
@@ -52,10 +65,16 @@ CheckHeader( const SffFileHeader& header )
 		&& (header.m_nCountImage != 0x0)
 		&& (header.m_nImageOffset == 0x0200)
 		&& (header.m_nImageHeaderSize == 32)
-		&& ((header.m_nPaletteType == 0) || (header.m_nPaletteType == 1));
+		&& ((header.m_nPaletteType == ePaletteTypeINDIV) || (header.m_nPaletteType == ePaletteTypeSHARED));
 }
 
-
+//! 作成する
+/*!
+	@param[in]	pStream	ストリーム
+	@param[in]	eFlag
+	@return 正常終了時 true \n
+			失敗時 false
+*/
 bool
 icSff::Create( Cat_Stream* pStream, icSff::enumFlag eFlag )
 {
@@ -73,18 +92,14 @@ icSff::Create( Cat_Stream* pStream, icSff::enumFlag eFlag )
 		return false;
 	}
 
-	m_nCountImage = header.m_nCountImage;
-	m_pTexture.reserve( m_nCountImage );
+	m_pTexture.reserve( header.m_nCountImage );
 
 	Cat_Palette* palsaveD = 0;
 	Cat_Palette* palsave1 = 0;
 	int32_t found_1st = 0;
 
 	// イメージの読み込み処理
-	SffImageHeader* pImageHeader = new SffImageHeader[header.m_nCountImage];
-	if(pImageHeader == 0) {
-		return false;
-	}
+	std::vector<SffImageHeader>	pImageHeader( header.m_nCountImage );
 	for(uint32_t i = 0; i < header.m_nCountImage; i++) {
 		if(Cat_StreamRead( pStream, &pImageHeader[i], sizeof(SffImageHeader) ) != sizeof(SffImageHeader)) {
 			return false;
@@ -133,33 +148,26 @@ icSff::Create( Cat_Stream* pStream, icSff::enumFlag eFlag )
 		const uint32_t invert_shared = 0;
 		if(m_pTexture[i]) {
 			if(!found_1st && !use_act && (is_8bitpal != 2)) {
-				//palsaveD = pSprite->m_surfImage->format->palette->colors;
-				//palsave1 = pSprite->m_surfImage->format->palette->colors;
 				palsaveD = m_pTexture[i]->GetPalette();
 				palsave1 = m_pTexture[i]->GetPalette();
 				found_1st = 1;
 			} else if((pImageHeader[i].m_nPaletteInfo == 2) || (use_act && !linux_kyara) || (is_8bitpal == 2)) {
 				if(!(pImageHeader[i].m_nGroupNo == 9000 && pImageHeader[i].m_nItemNo == 1 && (!pImageHeader[i].m_fCommonPalette || is_8bitpal == -1)) || is_8bitpal == 2 ) {
-					//SDL_SetColors( pSprite->m_surfImage, palsave1, 0, 256 );
 					m_pTexture[i]->SetPalette( palsave1 );
 				}
 			} else if((pImageHeader[i].m_nPaletteInfo == 1) && found_1st) {
 				if((is_8bitpal == 1) || (use_act && !((pImageHeader[i].m_nGroupNo == 9000) && (pImageHeader[i].m_nItemNo == 1))) ) {
-					//SDL_SetColors( pSprite->m_surfImage, palsaveD, 0, 256 );
 					m_pTexture[i]->SetPalette( palsaveD );
 				}
 			} else if(linux_kyara) {
 				if((is_8bitpal == 1) || !found_1st) {
-					//palsaveD = pSprite->m_surfImage->format->palette->colors;
 					palsaveD = m_pTexture[i]->GetPalette();
 					found_1st = 1;
 				}
 			} else if(!use_act && (is_8bitpal == 1)) {
 				if(pImageHeader[i].m_fCommonPalette) {
-					//SDL_SetColors( pSprite->m_surfImage, palsaveD, 0, 256 );
 					m_pTexture[i]->SetPalette( palsaveD );
 				} else if(header.m_nPaletteType == invert_shared) {
-					//palsaveD = pSprite->m_surfImage->format->palette->colors;
 					palsaveD = m_pTexture[i]->GetPalette();
 				}
 			}
@@ -174,22 +182,57 @@ icSff::Create( Cat_Stream* pStream, icSff::enumFlag eFlag )
 	return true;
 }
 
+//! 解放する
+void
+icSff::Release( void )
+{
+	for(TextureIt p = m_pTexture.begin(); p != m_pTexture.end(); p++) {
+		delete *p;
+	}
+	m_pTexture.clear();
+}
+
+//! 定義されているテクスチャ数を返す
+/*!
+	@return 定義されているテクスチャ数
+*/
 uint32_t
 icSff::GetTextureCount( void ) const
 {
-	return m_nCountImage;
+	return m_pTexture.size();
 }
 
+//! インデックスからテクスチャを返す
+/*!
+	@return テクスチャ \n
+			見つからなかったら0を返す
+*/
 icTexture*
 icSff::SearchFromIndex( uint32_t nIndex )
 {
-	if((nIndex < 0) || (nIndex >= m_nCountImage)) {
+	if((nIndex < 0) || (nIndex >= GetTextureCount())) {
 		return 0;
 	}
-
 	return m_pTexture[nIndex];
 }
 
+//! テクスチャを返す
+/*!
+	@param[in]	nGroupNo	グループ番号
+	@param[in]	nItemNo		グループ内番号
+	@return テクスチャ \n
+			見つからなかったら0を返す
+*/
+icTexture*
+icSff::Search( uint16_t nGroupNo, uint16_t nItemNo )
+{
+	for(TextureIt p = m_pTexture.begin(); p != m_pTexture.end(); p++) {
+		if(((*p)->GetGroupNo() == nGroupNo) && ((*p)->GetItemNo() == nItemNo)) {
+			return (*p);
+		}
+	}
+	return 0;
+}
 
 // 変則的な PCX 読み込み ---------------------------------------------------------------------------------------
 
