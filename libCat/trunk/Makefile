@@ -69,7 +69,7 @@ INSTALL_FILE=\
 	include/Cat_Input.h \
 	include/Cat_CritSec.h
 
-CFLAGS = -O6 -G0 -Wall -DUSE_CAT_IMAGELOADER_PNG -DUSE_CAT_IMAGELOADER_PCX
+CFLAGS = -O6 -G0 -mno-check-zero-division -Wall -DUSE_CAT_IMAGELOADER_PNG -DUSE_CAT_IMAGELOADER_PCX
 INCDIR = ./include
 
 PSPSDK=$(shell psp-config --pspsdk-path)
