@@ -1,7 +1,7 @@
 //! @file	icTexture.cpp
 // テクスチャ
 
-#include "icTexture.h"
+#include "icCore.h"
 
 namespace ic {
 

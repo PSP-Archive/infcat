@@ -15,6 +15,8 @@ main()
 	Cat_SetupCallbacks();
 	pspDebugScreenInit();
 
+	icTextureCreatorSff gpTextureCreatorSff;	// Sffの作成
+
 	Cat_RenderInit( CAT_RENDER_DEFAULT );
 	Cat_InputInit();
 	icGame::ChangeGameMode( eGameMode_SffViewer, FILENAME );	// SffViewerにしとく

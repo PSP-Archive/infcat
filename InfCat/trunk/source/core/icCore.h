@@ -22,6 +22,7 @@
 
 // InfCat
 #include "icTexture.h"
+#include "icTexturePool.h"
 #include "icSffLoader.h"
 
 // for DEBUG

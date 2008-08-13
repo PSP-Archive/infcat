@@ -32,7 +32,7 @@ class icGameSffViewerImpl {
 public:
 	//! コンストラクタ
 	icGameSffViewerImpl()
-		: m_pSff( new icSff )
+		: m_pTexturePool( new icTexturePool )
 		, m_pTexture( 0 )
 		, m_nIndex( 0 )
 	{
@@ -48,9 +48,12 @@ public:
 		bool rc = false;
 		Cat_Stream* pStream = Cat_StreamFileReadOpen( (const char*)pvInitParam );
 		if(pStream) {
-			if(m_pSff && m_pSff->Create( pStream )) {
-				m_pTexture = m_pSff->SearchFromIndex( m_nIndex );
+			if(m_pTexturePool && m_pTexturePool->Create( pStream )) {
+				m_pTexture = m_pTexturePool->SearchFromIndex( m_nIndex );
 				rc = true;
+			} else {
+				TRACE(( "%s load failed.", (const char*)pvInitParam ));
+				HALT();
 			}
 			Cat_StreamClose( pStream );
 		}
@@ -63,24 +66,24 @@ public:
 
 	//! 更新
 	bool Framemove( void ) {
-		if(m_pSff) {
+		if(m_pTexturePool) {
 			uint32_t nPreIndex = m_nIndex;
 			if(Cat_InputGetPressed( 0 ) & CAT_INPUT_LEFT) {
 				if(m_nIndex > 0) {
 					m_nIndex--;
 				} else {
-					m_nIndex = m_pSff->GetTextureCount() - 1;
+					m_nIndex = m_pTexturePool->GetTextureCount() - 1;
 				}
 			}
 			if(Cat_InputGetPressed( 0 ) & CAT_INPUT_RIGHT) {
-				if(m_nIndex < (m_pSff->GetTextureCount() - 1)) {
+				if(m_nIndex < (m_pTexturePool->GetTextureCount() - 1)) {
 					m_nIndex++;
 				} else {
 					m_nIndex = 0;
 				}
 			}
 			if(nPreIndex != m_nIndex) {
-				m_pTexture = m_pSff->SearchFromIndex( m_nIndex );
+				m_pTexture = m_pTexturePool->SearchFromIndex( m_nIndex );
 			}
 		}
 		return true;
@@ -91,7 +94,7 @@ public:
 		if(m_pTexture) {
 			m_pTexture->SetTexture();
 			const float x = 240.0f;
-			const float y = 240.0f;
+			const float y = 272.0f / 2.0f;
 			const float z = 0.0f;
 			const float w = (float)m_pTexture->GetWidth();
 			const float h = (float)m_pTexture->GetHeight();
@@ -107,9 +110,9 @@ public:
 	void Terminate( void ) {
 	}
 private:
-	boost::shared_ptr<icSff>	m_pSff;			/*!< SSF				*/
-	icTexture*					m_pTexture;		/*!< 描画するテクスチャ	*/
-	uint32_t					m_nIndex;		/*!< インデックス		*/
+	boost::shared_ptr<icTexturePool>	m_pTexturePool;	/*!< テクスチャプール	*/
+	icTexture*							m_pTexture;		/*!< 描画するテクスチャ	*/
+	uint32_t							m_nIndex;		/*!< インデックス		*/
 };
 
 //! コンストラクタ

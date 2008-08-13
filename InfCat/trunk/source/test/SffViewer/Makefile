@@ -11,6 +11,7 @@
 TARGET = InfCat
 OBJS =\
 	../../core/icTexture.o \
+	../../core/icTexturePool.o \
 	../../core/icSffLoader.o \
 	../../psp/moduleinfo.o \
 	icGame.o \
@@ -22,7 +23,7 @@ OBJS =\
 PSP_FW_VERSION = 371
 
 INCDIR = ../../core
-CFLAGS = -O6 -G0 -Wall
+CFLAGS = -O6 -G0 -mno-check-zero-division -Wall
 
 CXXFLAGS = $(CFLAGS) -fno-exceptions
 ASFLAGS = $(CFLAGS)

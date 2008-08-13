@@ -1,64 +1,36 @@
 //! @file	icSffLoader.h
 
-#ifndef INCL_CLASS_icSff
-#define INCL_CLASS_icSff
+#ifndef INCL_CLASS_icTextureCreatorSff
+#define INCL_CLASS_icTextureCreatorSff
 
-#include "icCore.h"
+#include "icTexturePool.h"
 
 namespace ic {
 
-class icTexture;
-
-class icSff {
-	typedef std::vector<icTexture*> Texture;
-	typedef std::vector<icTexture*>::iterator TextureIt;
-
-	Texture		m_pTexture;		/*!< テクスチャ				*/
+//! Sffファイル形式からテクスチャを作成する
+class icTextureCreatorSff : public icTextureCreator {
 public:
-	//! デストラクタ
-	~icSff();
+	//! コンストラクタ
+	icTextureCreatorSff();
 
-	//! 作成フラグ
-	enum enumFlag {
-		eCREATE_ALL,			/*!< 全てのテクスチャを作成	*/
-		eCREATE_THUMB_ONLY,		/*!< サムネイルのみ作成		*/
-	};
+	//! 対応している形式かどうかを調べる
+	/*!
+		@return	対応している形式の場合true \n
+				非対応な場合は、falseを返す
+	*/
+	virtual bool Check( Cat_Stream* pStream );
 
 	//! 作成する
 	/*!
-		@param[in]	pStream	ストリーム
-		@param[in]	eFlag
+		@param[in]	pTexturePool	テクスチャプール
+		@param[in]	pStream			ストリーム
+		@param[in]	eCreateFlag		作成フラグ
 		@return 正常終了時 true \n
 				失敗時 false
 	*/
-	bool Create( Cat_Stream* pStream, enumFlag eFlag = eCREATE_ALL );
-
-	//! 解放する
-	void Release( void );
-
-	//! 定義されているテクスチャ数を返す
-	/*!
-		@return 定義されているテクスチャ数
-	*/
-	uint32_t	GetTextureCount( void ) const;
-
-	//! インデックスからテクスチャを返す
-	/*!
-		@return テクスチャ \n
-				見つからなかったら0を返す
-	*/
-	icTexture* SearchFromIndex( uint32_t nIndex );
-
-	//! テクスチャを返す
-	/*!
-		@param[in]	nGroupNo	グループ番号
-		@param[in]	nItemNo		グループ内番号
-		@return テクスチャ \n
-				見つからなかったら0を返す
-	*/
-	icTexture* Search( uint16_t nGroupNo, uint16_t nItemNo );
+	virtual bool Create( icTexturePool* pTexturePool, Cat_Stream* pStream, icTexturePool::enumCreateFlag eCreateFlag );
 };
 
 } // namespace ic
 
-#endif // INCL_CLASS_icSff
+#endif // INCL_CLASS_icTextureCreatorSff

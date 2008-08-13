@@ -44,12 +44,6 @@ struct SffImageHeader {
 //! 識別用文字列
 #define MAGIC_STRING "ElecbyteSpr"
 
-//! デストラクタ
-icSff::~icSff()
-{
-	Release();
-}
-
 //! ヘッダをチェックする
 /*!
 	@param[in]	header	Sffヘッダ
@@ -61,22 +55,51 @@ CheckHeader( const SffFileHeader& header )
 {
 	return
 		(memcmp( header.m_cMAGIC, MAGIC_STRING, 12 ) == 0)
-		&& (header.m_nCountGroup != 0x0)
+		// && (header.m_nCountGroup != 0x0)
 		&& (header.m_nCountImage != 0x0)
 		&& (header.m_nImageOffset == 0x0200)
 		&& (header.m_nImageHeaderSize == 32)
 		&& ((header.m_nPaletteType == ePaletteTypeINDIV) || (header.m_nPaletteType == ePaletteTypeSHARED));
 }
 
+//! コンストラクタ
+icTextureCreatorSff::icTextureCreatorSff()
+{
+	icTexturePool::RegisterCreator( this );
+}
+
+//! 対応している形式かどうかを調べる
+/*!
+	@return	対応している形式の場合true \n
+			非対応な場合は、falseを返す
+*/
+bool
+icTextureCreatorSff::Check( Cat_Stream* pStream )
+{
+	bool rc = false;
+	int64_t nPos = Cat_StreamTell( pStream );
+	if(nPos >= 0) {
+		// ファイルヘッダ読み込み
+		SffFileHeader header;
+		if(Cat_StreamRead( pStream, &header, sizeof(header) ) == sizeof(header)) {
+			// ヘッダチェック
+			rc = CheckHeader( header );
+		}
+		Cat_StreamSeek( pStream, nPos );
+	}
+	return rc;
+}
+
 //! 作成する
 /*!
-	@param[in]	pStream	ストリーム
-	@param[in]	eFlag
+	@param[in]	pTexturePool	テクスチャプール
+	@param[in]	pStream			ストリーム
+	@param[in]	eCreateFlag		作成フラグ
 	@return 正常終了時 true \n
 			失敗時 false
 */
 bool
-icSff::Create( Cat_Stream* pStream, icSff::enumFlag eFlag )
+icTextureCreatorSff::Create( icTexturePool* pTexturePool, Cat_Stream* pStream, icTexturePool::enumCreateFlag eCreateFlag )
 {
 	if(pStream == 0) {
 		return false;
@@ -92,11 +115,9 @@ icSff::Create( Cat_Stream* pStream, icSff::enumFlag eFlag )
 		return false;
 	}
 
-	m_pTexture.reserve( header.m_nCountImage );
-
-	Cat_Palette* palsaveD = 0;
-	Cat_Palette* palsave1 = 0;
-	int32_t found_1st = 0;
+	icTexturePool::Texture& texture = pTexturePool->GetTexture();
+	texture.clear();
+	texture.reserve( header.m_nCountImage );
 
 	// イメージの読み込み処理
 	std::vector<SffImageHeader>	pImageHeader( header.m_nCountImage );
@@ -126,50 +147,20 @@ icSff::Create( Cat_Stream* pStream, icSff::enumFlag eFlag )
 		}
 
 		// イメージ作成
-		m_pTexture[i] = 0;
 		if(pImageHeader[i].m_nImageSize == 0) {
 			// イメージサイズ0は、共通イメージ
-			if((pImageHeader[i].m_nLinkIndex < i) && m_pTexture[pImageHeader[i].m_nLinkIndex]) {
-				m_pTexture[i] = new icTexture( m_pTexture[pImageHeader[i].m_nLinkIndex], pImageHeader[i].m_nGroupNo, pImageHeader[i].m_nItemNo, pImageHeader[i].m_nDrawOffsetX, pImageHeader[i].m_nDrawOffsetY );
+			if((pImageHeader[i].m_nLinkIndex < i) && texture[pImageHeader[i].m_nLinkIndex]) {
+				texture.push_back( new icTexture( texture[pImageHeader[i].m_nLinkIndex], pImageHeader[i].m_nGroupNo, pImageHeader[i].m_nItemNo, pImageHeader[i].m_nDrawOffsetX, pImageHeader[i].m_nDrawOffsetY ) );
+			} else {
+				texture.push_back( 0 );
 			}
 		} else {
 			Cat_Texture* pTexture = SffCreateTexture( pStream );
 			if(pTexture) {
-				m_pTexture[i] = new icTexture( pTexture, pImageHeader[i].m_nGroupNo, pImageHeader[i].m_nItemNo, pImageHeader[i].m_nDrawOffsetX, pImageHeader[i].m_nDrawOffsetY );
+				texture.push_back( new icTexture( pTexture, pImageHeader[i].m_nGroupNo, pImageHeader[i].m_nItemNo, pImageHeader[i].m_nDrawOffsetX, pImageHeader[i].m_nDrawOffsetY ) );
 				Cat_TextureRelease( pTexture );
-			}
-		}
-
-		// パレット処理
-		// 何かを参考にしたけど、出典を思い出せない……
-		const int linux_kyara = 1;
-		const int use_act = 0;
-		const int is_8bitpal = 1;
-		const uint32_t invert_shared = 0;
-		if(m_pTexture[i]) {
-			if(!found_1st && !use_act && (is_8bitpal != 2)) {
-				palsaveD = m_pTexture[i]->GetPalette();
-				palsave1 = m_pTexture[i]->GetPalette();
-				found_1st = 1;
-			} else if((pImageHeader[i].m_nPaletteInfo == 2) || (use_act && !linux_kyara) || (is_8bitpal == 2)) {
-				if(!(pImageHeader[i].m_nGroupNo == 9000 && pImageHeader[i].m_nItemNo == 1 && (!pImageHeader[i].m_fCommonPalette || is_8bitpal == -1)) || is_8bitpal == 2 ) {
-					m_pTexture[i]->SetPalette( palsave1 );
-				}
-			} else if((pImageHeader[i].m_nPaletteInfo == 1) && found_1st) {
-				if((is_8bitpal == 1) || (use_act && !((pImageHeader[i].m_nGroupNo == 9000) && (pImageHeader[i].m_nItemNo == 1))) ) {
-					m_pTexture[i]->SetPalette( palsaveD );
-				}
-			} else if(linux_kyara) {
-				if((is_8bitpal == 1) || !found_1st) {
-					palsaveD = m_pTexture[i]->GetPalette();
-					found_1st = 1;
-				}
-			} else if(!use_act && (is_8bitpal == 1)) {
-				if(pImageHeader[i].m_fCommonPalette) {
-					m_pTexture[i]->SetPalette( palsaveD );
-				} else if(header.m_nPaletteType == invert_shared) {
-					palsaveD = m_pTexture[i]->GetPalette();
-				}
+			} else {
+				texture.push_back( 0 );
 			}
 		}
 
@@ -179,59 +170,48 @@ icSff::Create( Cat_Stream* pStream, icSff::enumFlag eFlag )
 			break;
 		}
 	}
-	return true;
-}
 
-//! 解放する
-void
-icSff::Release( void )
-{
-	for(TextureIt p = m_pTexture.begin(); p != m_pTexture.end(); p++) {
-		delete *p;
-	}
-	m_pTexture.clear();
-}
-
-//! 定義されているテクスチャ数を返す
-/*!
-	@return 定義されているテクスチャ数
-*/
-uint32_t
-icSff::GetTextureCount( void ) const
-{
-	return m_pTexture.size();
-}
-
-//! インデックスからテクスチャを返す
-/*!
-	@return テクスチャ \n
-			見つからなかったら0を返す
-*/
-icTexture*
-icSff::SearchFromIndex( uint32_t nIndex )
-{
-	if((nIndex < 0) || (nIndex >= GetTextureCount())) {
-		return 0;
-	}
-	return m_pTexture[nIndex];
-}
-
-//! テクスチャを返す
-/*!
-	@param[in]	nGroupNo	グループ番号
-	@param[in]	nItemNo		グループ内番号
-	@return テクスチャ \n
-			見つからなかったら0を返す
-*/
-icTexture*
-icSff::Search( uint16_t nGroupNo, uint16_t nItemNo )
-{
-	for(TextureIt p = m_pTexture.begin(); p != m_pTexture.end(); p++) {
-		if(((*p)->GetGroupNo() == nGroupNo) && ((*p)->GetItemNo() == nItemNo)) {
-			return (*p);
+	// パレット処理
+	// 何かを参考にしたけど、出典を思い出せない……
+	Cat_Palette* pPaletteD = 0;
+	Cat_Palette* pPalette1 = 0;
+	int32_t found_1st = 0;
+	for(uint32_t i = 0; i < header.m_nCountImage; i++) {
+		// パレット処理
+		// 何かを参考にしたけど、出典を思い出せない……
+		const int fLinux = 1;
+		const int fAct = 0;
+		const int fPal256 = 1;
+		const uint32_t nInvertShared = 0;
+		if(texture[i]) {
+			if(!found_1st && !fAct && (fPal256 != 2)) {
+				pPaletteD = texture[i]->GetPalette();
+				pPalette1 = texture[i]->GetPalette();
+				found_1st = 1;
+			} else if((pImageHeader[i].m_nPaletteInfo == 2) || (fAct && !fLinux) || (fPal256 == 2)) {
+				if(!(pImageHeader[i].m_nGroupNo == 9000 && pImageHeader[i].m_nItemNo == 1 && (!pImageHeader[i].m_fCommonPalette || fPal256 == -1)) || fPal256 == 2 ) {
+					texture[i]->SetPalette( pPalette1 );
+				}
+			} else if((pImageHeader[i].m_nPaletteInfo == 1) && found_1st) {
+				if((fPal256 == 1) || (fPal256 && !((pImageHeader[i].m_nGroupNo == 9000) && (pImageHeader[i].m_nItemNo == 1))) ) {
+					texture[i]->SetPalette( pPaletteD );
+				}
+			} else if(fLinux) {
+				if((fPal256 == 1) || !found_1st) {
+					pPaletteD = texture[i]->GetPalette();
+					found_1st = 1;
+				}
+			} else if(!fAct && (fPal256 == 1)) {
+				if(pImageHeader[i].m_fCommonPalette) {
+					texture[i]->SetPalette( pPaletteD );
+				} else if(header.m_nPaletteType == nInvertShared) {
+					pPaletteD = texture[i]->GetPalette();
+				}
+			}
 		}
 	}
-	return 0;
+
+	return true;
 }
 
 // 変則的な PCX 読み込み ---------------------------------------------------------------------------------------
