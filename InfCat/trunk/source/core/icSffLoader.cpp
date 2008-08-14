@@ -10,6 +10,12 @@ enum enumPaletteType {
 	ePaletteTypeSHARED = 1,
 };
 
+struct UserData {
+	uint32_t nPaletteInfo;
+	uint32_t fCommonPalette;
+	uint32_t nPaletteType;
+};
+
 //! テクスチャを作成する
 static Cat_Texture* SffCreateTexture( Cat_Stream* pStream );
 
@@ -176,23 +182,27 @@ icTextureCreatorSff::Create( icTexturePool* pTexturePool, Cat_Stream* pStream, i
 	Cat_Palette* pPaletteD = 0;
 	Cat_Palette* pPalette1 = 0;
 	int32_t found_1st = 0;
+	const int fLinux = 1;
+	const int fAct = 0;
+	const int fPal256 = 1;
+	const uint32_t nInvertShared = 0;
 	for(uint32_t i = 0; i < header.m_nCountImage; i++) {
-		// パレット処理
-		// 何かを参考にしたけど、出典を思い出せない……
-		const int fLinux = 1;
-		const int fAct = 0;
-		const int fPal256 = 1;
-		const uint32_t nInvertShared = 0;
 		if(texture[i]) {
+			UserData* pUserData = (UserData*)CAT_MALLOC( sizeof(UserData) );
+			pUserData->nPaletteInfo   = pImageHeader[i].m_nPaletteInfo;
+			pUserData->fCommonPalette = pImageHeader[i].m_fCommonPalette;
+			pUserData->nPaletteType   = header.m_nPaletteType;
+			texture[i]->SetUserData( pUserData );
+
 			if(!found_1st && !fAct && (fPal256 != 2)) {
 				pPaletteD = texture[i]->GetPalette();
 				pPalette1 = texture[i]->GetPalette();
 				found_1st = 1;
-			} else if((pImageHeader[i].m_nPaletteInfo == 2) || (fAct && !fLinux) || (fPal256 == 2)) {
-				if(!(pImageHeader[i].m_nGroupNo == 9000 && pImageHeader[i].m_nItemNo == 1 && (!pImageHeader[i].m_fCommonPalette || fPal256 == -1)) || fPal256 == 2 ) {
+			} else if((pUserData->nPaletteInfo == 2) || (fAct && !fLinux) || (fPal256 == 2)) {
+				if(!(pImageHeader[i].m_nGroupNo == 9000 && pImageHeader[i].m_nItemNo == 1 && (!pUserData->fCommonPalette || fPal256 == -1)) || fPal256 == 2 ) {
 					texture[i]->SetPalette( pPalette1 );
 				}
-			} else if((pImageHeader[i].m_nPaletteInfo == 1) && found_1st) {
+			} else if((pUserData->nPaletteInfo == 1) && found_1st) {
 				if((fPal256 == 1) || (fPal256 && !((pImageHeader[i].m_nGroupNo == 9000) && (pImageHeader[i].m_nItemNo == 1))) ) {
 					texture[i]->SetPalette( pPaletteD );
 				}
@@ -202,9 +212,9 @@ icTextureCreatorSff::Create( icTexturePool* pTexturePool, Cat_Stream* pStream, i
 					found_1st = 1;
 				}
 			} else if(!fAct && (fPal256 == 1)) {
-				if(pImageHeader[i].m_fCommonPalette) {
+				if(pUserData->fCommonPalette) {
 					texture[i]->SetPalette( pPaletteD );
-				} else if(header.m_nPaletteType == nInvertShared) {
+				} else if(pUserData->nPaletteType == nInvertShared) {
 					pPaletteD = texture[i]->GetPalette();
 				}
 			}
@@ -214,17 +224,56 @@ icTextureCreatorSff::Create( icTexturePool* pTexturePool, Cat_Stream* pStream, i
 	return true;
 }
 
+//! パレットを設定する
+/*!
+	@param[in]	pTexturePool	テクスチャプール
+	@param[in]	pPalette		設定するパレット
+*/
+void
+icTextureCreatorSff::SetAct( icTexturePool* pTexturePool, Cat_Palette* pPalette )
+{
+	icTexturePool::Texture& texture = pTexturePool->GetTexture();
+
+	Cat_Palette* pPaletteD = 0;
+	Cat_Palette* pPalette1 = pPalette;
+	int32_t found_1st = 0;
+	const int fLinux = 1;
+	const int fAct = pPalette ? 1 : 0;
+	const int fPal256 = 1;
+	const uint32_t nInvertShared = 0;
+	for(uint32_t i = 0; i < pTexturePool->GetTextureCount(); i++) {
+		if(texture[i]) {
+			UserData* pUserData = (UserData*)texture[i]->GetUserData();
+			if(!found_1st && !fAct && (fPal256 != 2)) {
+				pPaletteD = texture[i]->GetPalette();
+				pPalette1 = texture[i]->GetPalette();
+				found_1st = 1;
+			} else if((pUserData->nPaletteInfo == 2) || (fAct && !fLinux) || (fPal256 == 2)) {
+				if(!(texture[i]->GetGroupNo() == 9000 && texture[i]->GetItemNo() == 1 && (!pUserData->fCommonPalette || fPal256 == -1)) || fPal256 == 2 ) {
+					texture[i]->SetPalette( pPalette1 );
+				}
+			} else if((pUserData->nPaletteInfo == 1) && found_1st) {
+				if((fPal256 == 1) || (fPal256 && !((texture[i]->GetGroupNo() == 9000) && (texture[i]->GetItemNo() == 1))) ) {
+					texture[i]->SetPalette( pPaletteD );
+				}
+			} else if(fLinux) {
+				if((fPal256 == 1) || !found_1st) {
+					pPaletteD = texture[i]->GetPalette();
+					found_1st = 1;
+				}
+			} else if(!fAct && (fPal256 == 1)) {
+				if(pUserData->fCommonPalette) {
+					texture[i]->SetPalette( pPaletteD );
+				} else if(pUserData->nPaletteType == nInvertShared) {
+					pPaletteD = texture[i]->GetPalette();
+				}
+			}
+		}
+	}
+}
+
+
 // 変則的な PCX 読み込み ---------------------------------------------------------------------------------------
-
-#ifndef CAT_MALLOC
-//! メモリ確保マクロ
-#define CAT_MALLOC(x) memalign( 32, (x) )
-#endif // CAT_MALLOC
-
-#ifndef CAT_FREE
-//! メモリ解放マクロ
-#define CAT_FREE(x) free( x )
-#endif // CAT_FREE
 
 //! PCXのフラグ
 #define MAGIC_NUMBER	(0x0A)

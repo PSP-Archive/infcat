@@ -68,9 +68,22 @@ public:
 				見つからなかったら0を返す
 	*/
 	icTexture* Search( uint16_t nGroupNo, uint16_t nItemNo );
+
+	//! パレットを設定する
+	/*!
+		@param[in]	pPalette		設定するパレット
+	*/
+	void SetAct( Cat_Palette* pPalette );
+
+	//! パレットを設定する
+	/*!
+		@param[in]	pAct			設定するパレット
+	*/
+	void SetAct( icAct* pAct ) { if(pAct) { SetAct( pAct->GetPalette() ); } }
 private:
 	Texture					m_pTexture;			/*!< テクスチャ			*/
 	static TextureCreator	m_TextureCreator;	/*!< テクスチャ作成者	*/
+	icTextureCreator*		m_pCreator;			/*!< テクスチャ作成者	*/
 };
 
 //! テクスチャ作成者
@@ -95,6 +108,13 @@ public:
 				失敗時 false
 	*/
 	virtual bool Create( icTexturePool* pTexturePool, Cat_Stream* pStream, icTexturePool::enumCreateFlag eCreateFlag ) = 0;
+
+	//! パレットを設定する
+	/*!
+		@param[in]	pTexturePool	テクスチャプール
+		@param[in]	pPalette		設定するパレット
+	*/
+	virtual void SetAct( icTexturePool* pTexturePool, Cat_Palette* pPalette ) {}
 };
 
 

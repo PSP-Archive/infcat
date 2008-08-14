@@ -22,6 +22,7 @@ public:
 		, m_nItemNo( nItemNo )
 		, m_nDrawOffsetX( nDrawOffsetX )
 		, m_nDrawOffsetY( nDrawOffsetY )
+		, m_pvUserData( 0 )
 	{
 		if(m_pTexture) {
 			Cat_TextureAddRef( m_pTexture );	// 参照カウントを加算しとく
@@ -42,6 +43,7 @@ public:
 		, m_nItemNo( nItemNo )
 		, m_nDrawOffsetX( nDrawOffsetX )
 		, m_nDrawOffsetY( nDrawOffsetY )
+		, m_pvUserData( 0 )
 	{
 		if(m_pTexture) {
 			Cat_TextureAddRef( m_pTexture );	// 参照カウントを加算しとく
@@ -53,6 +55,9 @@ public:
 		if(m_pTexture) {
 			Cat_TextureRelease( m_pTexture );
 			m_pTexture = 0;
+		}
+		if(m_pvUserData) {
+			CAT_FREE( m_pvUserData );
 		}
 	}
 
@@ -146,12 +151,30 @@ public:
 			Cat_PaletteAddRef( pPalette );
 		}
 	}
+
+	//! ユーザーデータを取得
+	/*!
+		@return ユーザーデータ
+	*/
+	void* GetUserData( void ) {
+		return m_pvUserData;
+	}
+
+	//! ユーザーデータを設定
+	/*!
+		@param[in]	pvUserData	ユーザーデータ
+	*/
+	void SetUserData( void* pvUserData ) {
+		m_pvUserData = pvUserData;
+	}
+
 private:
 	Cat_Texture*	m_pTexture;			/*!< テクスチャ						*/
 	uint16_t		m_nGroupNo;			/*!< グループ番号					*/
 	uint16_t		m_nItemNo;			/*!< グループ内番号					*/
 	int16_t			m_nDrawOffsetX;		/*!< 表示オフセットX(ドット単位)	*/
 	int16_t			m_nDrawOffsetY;		/*!< 表示オフセットY(ドット単位)	*/
+	void*			m_pvUserData;		/*!< ユーザーデータ					*/
 };
 
 //! コンストラクタ
@@ -287,6 +310,26 @@ void
 icTexture::SetPalette( Cat_Palette* pPalette )
 {
 	m_impl->SetPalette( pPalette );
+}
+
+//! ユーザーデータを取得
+/*!
+	@return ユーザーデータ
+*/
+void*
+icTexture::GetUserData( void )
+{
+	return m_impl->GetUserData();
+}
+
+//! ユーザーデータを設定
+/*!
+	@param[in]	pvUserData	ユーザーデータ
+*/
+void
+icTexture::SetUserData( void* pvUserData )
+{
+	m_impl->SetUserData( pvUserData );
 }
 
 //! 演算子 <

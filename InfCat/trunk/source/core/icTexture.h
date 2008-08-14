@@ -96,6 +96,18 @@ public:
 	*/
 	void SetPalette( Cat_Palette* pPalette );
 
+	//! ユーザーデータを取得
+	/*!
+		@return ユーザーデータ
+	*/
+	void* GetUserData( void );
+
+	//! ユーザーデータを設定
+	/*!
+		@param[in]	pvUserData	ユーザーデータ
+	*/
+	void SetUserData( void* pvUserData );
+
 private:
 	boost::shared_ptr<class icTextureImpl>	m_impl;		/*!< 実装	*/
 };

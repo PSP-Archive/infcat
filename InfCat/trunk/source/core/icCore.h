@@ -15,12 +15,23 @@
 #include "Cat_Render.h"
 #include "Cat_Input.h"
 
+#ifndef CAT_MALLOC
+//! メモリ確保マクロ
+#define CAT_MALLOC(x) memalign( 32, (x) )
+#endif // CAT_MALLOC
+
+#ifndef CAT_FREE
+//! メモリ解放マクロ
+#define CAT_FREE(x) free( x )
+#endif // CAT_FREE
+
 // boost
 #include <boost/shared_ptr.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/utility.hpp>
 
 // InfCat
+#include "icAct.h"
 #include "icTexture.h"
 #include "icTexturePool.h"
 #include "icSffLoader.h"

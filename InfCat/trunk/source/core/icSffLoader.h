@@ -29,6 +29,13 @@ public:
 				失敗時 false
 	*/
 	virtual bool Create( icTexturePool* pTexturePool, Cat_Stream* pStream, icTexturePool::enumCreateFlag eCreateFlag );
+
+	//! パレットを設定する
+	/*!
+		@param[in]	pTexturePool	テクスチャプール
+		@param[in]	pPalette		設定するパレット
+	*/
+	virtual void SetAct( icTexturePool* pTexturePool, Cat_Palette* pPalette );
 };
 
 } // namespace ic

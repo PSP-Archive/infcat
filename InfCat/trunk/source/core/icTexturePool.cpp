@@ -35,10 +35,12 @@ bool
 icTexturePool::Create( Cat_Stream* pStream, enumCreateFlag eCreateFlag )
 {
 	for(TextureCreatorIt p = m_TextureCreator.begin(); p != m_TextureCreator.end(); p++) {
-		if((*p)->Check( pStream )) {
-			return (*p)->Create( this, pStream, eCreateFlag );
+		m_pCreator = *p;
+		if(m_pCreator->Check( pStream )) {
+			return m_pCreator->Create( this, pStream, eCreateFlag );
 		}
 	}
+	m_pCreator = 0;
 	return false;
 }
 
@@ -92,6 +94,18 @@ icTexturePool::Search( uint16_t nGroupNo, uint16_t nItemNo )
 		}
 	}
 	return 0;
+}
+
+//! パレットを設定する
+/*!
+	@param[in]	pPalette		設定するパレット
+*/
+void
+icTexturePool::SetAct( Cat_Palette* pPalette )
+{
+	if(m_pCreator) {
+		m_pCreator->SetAct( this, pPalette );
+	}
 }
 
 } // namespace ic
