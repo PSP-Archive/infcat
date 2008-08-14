@@ -35,6 +35,8 @@ public:
 		: m_pTexturePool( new icTexturePool )
 		, m_pTexture( 0 )
 		, m_nIndex( 0 )
+		, m_nActIndex( 0 )
+		, m_pAct( new icAct )
 	{
 	}
 
@@ -68,6 +70,7 @@ public:
 	bool Framemove( void ) {
 		if(m_pTexturePool) {
 			uint32_t nPreIndex = m_nIndex;
+			uint32_t nPreActIndex = m_nActIndex;
 			if(Cat_InputGetPressed( 0 ) & CAT_INPUT_LEFT) {
 				if(m_nIndex > 0) {
 					m_nIndex--;
@@ -80,6 +83,29 @@ public:
 					m_nIndex++;
 				} else {
 					m_nIndex = 0;
+				}
+			}
+			if(Cat_InputGetPressed( 0 ) & CAT_INPUT_UP) {
+				if(m_nActIndex > 0) {
+					m_nActIndex--;
+				}
+			}
+			if(Cat_InputGetPressed( 0 ) & CAT_INPUT_DOWN) {
+				if(m_nActIndex < 12) {
+					m_nActIndex++;
+				}
+			}
+			if(nPreActIndex != m_nActIndex) {
+				char pszFilename[64];
+				sprintf( pszFilename, "test%02d.act", (int)m_nActIndex );
+				Cat_Stream* pStream = Cat_StreamFileReadOpen( pszFilename );
+				if(pStream) {
+					if(m_pAct->Create( pStream )) {
+						m_pTexturePool->SetAct( m_pAct->GetPalette() );
+					}
+					Cat_StreamClose( pStream );
+				} else {
+					m_nActIndex = nPreActIndex;
 				}
 			}
 			if(nPreIndex != m_nIndex) {
@@ -110,9 +136,11 @@ public:
 	void Terminate( void ) {
 	}
 private:
-	boost::shared_ptr<icTexturePool>	m_pTexturePool;	/*!< テクスチャプール	*/
-	icTexture*							m_pTexture;		/*!< 描画するテクスチャ	*/
-	uint32_t							m_nIndex;		/*!< インデックス		*/
+	boost::shared_ptr<icTexturePool>	m_pTexturePool;	/*!< テクスチャプール		*/
+	icTexture*							m_pTexture;		/*!< 描画するテクスチャ		*/
+	uint32_t							m_nIndex;		/*!< インデックス			*/
+	uint32_t							m_nActIndex;	/*!< 適応しているパレット	*/
+	boost::shared_ptr<icAct>			m_pAct;
 };
 
 //! コンストラクタ

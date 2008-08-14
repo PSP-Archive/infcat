@@ -13,6 +13,7 @@ OBJS =\
 	../../core/icTexture.o \
 	../../core/icTexturePool.o \
 	../../core/icSffLoader.o \
+	../../core/icAct.o \
 	../../psp/moduleinfo.o \
 	icGame.o \
 	icGameSffViewer.o \

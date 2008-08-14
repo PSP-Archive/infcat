@@ -15,7 +15,7 @@ main()
 	Cat_SetupCallbacks();
 	pspDebugScreenInit();
 
-	icTextureCreatorSff gpTextureCreatorSff;	// Sffの作成
+	icTextureCreatorSff sff;	// SFFテクスチャ作成の登録
 
 	Cat_RenderInit( CAT_RENDER_DEFAULT );
 	Cat_InputInit();
