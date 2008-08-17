@@ -35,6 +35,9 @@
 #include "icTexture.h"
 #include "icTexturePool.h"
 #include "icSffLoader.h"
+#include "icTextReader.h"
+#include "icSectionValue.h"
+#include "icDef.h"
 
 // for DEBUG
 #include <pspdebug.h>
